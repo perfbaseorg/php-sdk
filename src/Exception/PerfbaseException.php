@@ -1,6 +1,6 @@
 <?php
 
-namespace Perfbase\SDK\Exceptions;
+namespace Perfbase\SDK\Exception;
 
 use Exception;
 

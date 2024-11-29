@@ -2,7 +2,7 @@
 
 /**
  * Enable Perfbase profiling
- * 
+ *
  * This function is a stub that represents the actual function provided by the
  * Perfbase extension. When the extension is installed, this stub will be replaced
  * with the actual implementation.
@@ -13,7 +13,7 @@ function perfbase_enable(): void {}
 
 /**
  * Disable Perfbase profiling and return collected data
- * 
+ *
  * This function is a stub that represents the actual function provided by the
  * Perfbase extension. When the extension is installed, this stub will be replaced
  * with the actual implementation.

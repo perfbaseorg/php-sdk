@@ -3,7 +3,6 @@
 namespace Perfbase\SDK;
 
 use Perfbase\SDK\Http\ApiClient;
-use Perfbase\SDK\Config;
 
 /**
  * Main client class for the Perfbase SDK
@@ -16,9 +15,6 @@ use Perfbase\SDK\Config;
  */
 class Client
 {
-    /** @var Config Configuration instance for the client */
-    private Config $config;
-
     /** @var ApiClient HTTP client for making API requests */
     private ApiClient $apiClient;
 
@@ -32,7 +28,6 @@ class Client
      */
     public function __construct(Config $config)
     {
-        $this->config = $config;
         $this->apiClient = new ApiClient($config);
     }
 
@@ -77,7 +72,7 @@ class Client
     {
         $this->apiClient->post('/profiles', [
             'profile_data' => $this->profileData
-        ], true);
+        ]);
     }
 
     /**
@@ -90,6 +85,6 @@ class Client
     {
         $this->apiClient->post('/profiles/bulk', [
             'profile_data' => $profileDataArray
-        ], true);
+        ]);
     }
 }

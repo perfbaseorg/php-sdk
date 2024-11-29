@@ -2,123 +2,105 @@
 
 namespace Perfbase\SDK\Http;
 
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Promise\Utils;
 use Perfbase\SDK\Config;
-use Perfbase\SDK\Exceptions\PerfbaseException;
+use Perfbase\SDK\Exception\PerfbaseException;
 
-/**
- * HTTP Client for making requests to the Perfbase API
- * 
- * This class handles all HTTP communication with the Perfbase API,
- * including authentication and data formatting.
- *
- * @package Perfbase\SDK\Http
- */
 class ApiClient
 {
-    /** @var Config SDK configuration instance */
     private Config $config;
-
-    /** @var array<string, string> Default HTTP headers for all requests */
     private array $defaultHeaders;
+    private Client $httpClient;
+    private array $promises = [];
 
-    /**
-     * Creates a new API client instance
-     *
-     * @param Config $config SDK configuration instance
-     */
     public function __construct(Config $config)
     {
         $this->config = $config;
         $this->defaultHeaders = [
             'Authorization' => 'Bearer ' . $this->config->getApiKey(),
-            'Content-Type' => 'application/json',
             'Accept' => 'application/json',
             'User-Agent' => 'Perfbase-PHP-SDK/1.0',
+            'Content-Type' => 'application/json',
         ];
+        $this->httpClient = new Client([
+            'base_uri' => rtrim($this->config->getApiUrl(), '/') . '/',
+            'timeout' => 10.0, // Adjust timeout as needed
+        ]);
     }
 
     /**
      * Sends a POST request to the specified API endpoint
      *
      * @param string $endpoint API endpoint to send the request to
-     * @param array  $data     Data to send in the request body
-     * @param bool   $noWait   If true, don't wait for response and return empty array
-     * 
-     * @throws PerfbaseException When the HTTP request fails or returns an error
-     * @return array Response data from the API
+     * @param array $data Data to send in the request body
+     * @param bool $async If true, send asynchronously; if false, wait for response
+     *
+     * @return array|null Response data from the API, or null if non-blocking
+     * @throws PerfbaseException|GuzzleException When the HTTP request fails or returns an error
      */
-    public function post(string $endpoint, array $data, bool $noWait = false): array
+    public function post(string $endpoint, array $data, bool $async = true): ?array
     {
-        $url = rtrim($this->config->getApiUrl(), '/') . '/' . ltrim($endpoint, '/');
+        // Convert data to JSON and compress
+        $jsonData = json_encode($data);
+        if ($jsonData === false) {
+            throw new PerfbaseException('Failed to encode data as JSON: ' . json_last_error_msg());
+        }
 
-        $ch = curl_init($url);
+        $compressedData = gzencode($jsonData);
+        if ($compressedData === false) {
+            throw new PerfbaseException('Failed to gzip compress the request data.');
+        }
 
-        $curlOptions = [
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($data),
-            CURLOPT_HTTPHEADER => $this->formatHeaders($this->defaultHeaders),
+        // Prepare request options
+        $options = [
+            'headers' => array_merge($this->defaultHeaders, ['Content-Encoding' => 'gzip']),
+            'body' => $compressedData,
         ];
 
-        if ($noWait) {
-            $curlOptions += [
-                // Don't wait for response
-                CURLOPT_TIMEOUT => 1,
-                CURLOPT_NOSIGNAL => 1,
-                // Don't return response
-                CURLOPT_RETURNTRANSFER => false,
-            ];
+        if ($async) {
+            // Send an asynchronous (non-blocking) request
+            $promise = $this->httpClient->postAsync($endpoint, $options);
+
+            // Optionally handle the promise's fulfillment or rejection
+            $promise->then(
+                function ($response) {
+                    // Success callback (optional)
+                },
+                function ($exception) {
+                    // Error callback (optional)
+                }
+            );
+
+            // Store the promise to settle later
+            $this->promises[] = $promise;
+
+            // Return null since we won't have a response immediately
+            return null;
         } else {
-            $curlOptions += [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => $this->config->getTimeout(),
-            ];
+            // Send a synchronous (blocking) request
+            try {
+                $response = $this->httpClient->post($endpoint, $options);
+                $body = (string)$response->getBody();
+                $decodedResponse = json_decode($body, true);
+
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    throw new PerfbaseException('Failed to decode API response: ' . json_last_error_msg());
+                }
+
+                return $decodedResponse;
+            } catch (\Exception $e) {
+                throw new PerfbaseException('HTTP Request failed: ' . $e->getMessage());
+            }
         }
-
-        curl_setopt_array($ch, $curlOptions);
-
-        $response = curl_exec($ch);
-        $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
-
-        curl_close($ch);
-
-        if ($error) {
-            throw new PerfbaseException(sprintf('HTTP Request failed: %s', $error));
-        }
-
-        if ($noWait) {
-            return [];
-        }
-
-        if ($statusCode >= 400) {
-            throw new PerfbaseException(
-                sprintf('API request failed with status %d: %s', $statusCode, $response)
-            );
-        }
-
-        $decodedResponse = json_decode($response, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new PerfbaseException(
-                sprintf('Failed to decode API response: %s', json_last_error_msg())
-            );
-        }
-
-        return $decodedResponse;
     }
 
-    /**
-     * Formats HTTP headers for cURL
-     *
-     * @param array<string, string> $headers Associative array of headers
-     * @return array<int, string> Formatted headers array
-     */
-    private function formatHeaders(array $headers): array
+    public function __destruct()
     {
-        return array_map(
-            fn($key, $value) => "$key: $value",
-            array_keys($headers),
-            $headers
-        );
+        // Attempt to settle all outstanding promises without blocking
+        if (!empty($this->promises)) {
+            Utils::settle($this->promises)->wait(false);
+        }
     }
 }
