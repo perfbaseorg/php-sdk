@@ -15,14 +15,15 @@ class TranslationUtilTest extends \PHPUnit\Framework\TestCase
     /**
      * @covers ::setLanguage
      * @return void
-     * @throws PerfbaseException
      */
     public function testSetsLanguageSuccessfully(): void
     {
-        TranslationUtil::setLanguage('en');
-
-        // No assertions are necessary as the goal is to confirm no exceptions are thrown.
-        $this->assertTrue(true);
+        try {
+            TranslationUtil::setLanguage('en'); // Valid language
+            $this->assertTrue(true, 'No exception was thrown, as expected.'); // Optional
+        } catch (\Throwable $e) {
+            $this->fail('An exception was not expected, but one was thrown: ' . $e->getMessage());
+        }
     }
 
     /**

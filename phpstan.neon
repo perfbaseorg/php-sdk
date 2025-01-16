@@ -3,6 +3,5 @@ parameters:
     treatPhpDocTypesAsCertain: false
     paths:
         - src
-        - tests
     scanFiles:
         - perfbase_extension_stubs.php
