@@ -26,7 +26,7 @@ class ApiClientTest extends \PHPUnit\Framework\TestCase
      */
     public function testThrowsExceptionIfApiKeyIsMissing(): void
     {
-        $config = new Config(); // apiKey is null by default
+        $config = new Config(); // api_key is null by default
 
         $this->expectException(PerfbaseApiKeyMissingException::class);
 
@@ -41,7 +41,7 @@ class ApiClientTest extends \PHPUnit\Framework\TestCase
     public function testInitializesWithValidApiKey(): void
     {
         $config = new Config();
-        $config->apiKey = 'test_api_key';
+        $config->api_key = 'test_api_key';
 
         $apiClient = new ApiClient($config);
 
@@ -63,7 +63,7 @@ class ApiClientTest extends \PHPUnit\Framework\TestCase
         $guzzleClient = new GuzzleClient(['handler' => $handlerStack]);
 
         $config = new Config();
-        $config->apiKey = 'test_api_key';
+        $config->api_key = 'test_api_key';
 
         $apiClient = new ApiClient($config);
         $reflection = new ReflectionClass($apiClient);
@@ -91,7 +91,7 @@ class ApiClientTest extends \PHPUnit\Framework\TestCase
         $guzzleClient = new GuzzleClient(['handler' => $handlerStack]);
 
         $config = new Config();
-        $config->apiKey = 'test_api_key';
+        $config->api_key = 'test_api_key';
 
         $apiClient = new ApiClient($config);
         $reflection = new ReflectionClass($apiClient);

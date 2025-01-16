@@ -57,7 +57,7 @@ You can configure the SDK using direct initialization or an array:
 ```php
 // Direct initialization
 $config = new Config(
-    apiKey: 'YOUR_API_KEY',
+    api_key: 'YOUR_API_KEY',
     track_file_operations: true
     // ...
 );

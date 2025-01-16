@@ -16,13 +16,13 @@ class Config
      * The API key to use for authenticating with the Perfbase API
      * @var string|null
      */
-    public ?string $apiKey = null;
+    public ?string $api_key = null;
 
     /**
      * Base URL for the Perfbase API
      * @var string
      */
-    public string $apiUrl = 'https://receiver.perfbase.com';
+    public string $api_url = 'https://receiver.perfbase.com';
 
     /**
      * Functions to ignore during profiling
@@ -143,8 +143,8 @@ class Config
 
 
     /**
-     * @param string|null $apiKey
-     * @param string|null $apiUrl
+     * @param string|null $api_key
+     * @param string|null $api_url
      * @param array<string>|null $ignored_functions
      * @param bool|null $use_coarse_clock
      * @param bool|null $track_exceptions
@@ -163,8 +163,8 @@ class Config
      * @param string|null $proxy
      */
     public function __construct(
-        ?string $apiKey = null,
-        ?string $apiUrl = null,
+        ?string $api_key = null,
+        ?string $api_url = null,
         ?array  $ignored_functions = null,
         ?bool   $use_coarse_clock = null,
         ?bool   $track_exceptions = null,
@@ -207,9 +207,10 @@ class Config
         $instance = new self();
 
         foreach ($config as $key => $value) {
-            $property = lcfirst(str_replace('_', '', ucwords($key, '_')));
-            if (property_exists($instance, $property)) {
-                $instance->$property = $value;
+            if (property_exists($instance, $key)) {
+                $instance->$key = $value;
+            } else {
+                throw new \InvalidArgumentException("Invalid configuration option: $key");
             }
         }
 

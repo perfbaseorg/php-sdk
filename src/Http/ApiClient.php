@@ -41,14 +41,14 @@ class ApiClient
      */
     public function __construct(Config $config)
     {
-        if (!is_string($config->apiKey)) {
+        if (!is_string($config->api_key)) {
             throw new PerfbaseApiKeyMissingException();
         }
 
         $this->config = $config;
 
         $this->defaultHeaders = [
-            'Authorization' => 'Bearer ' . $this->config->apiKey,
+            'Authorization' => 'Bearer ' . $this->config->api_key,
             'Accept' => 'application/json',
             'User-Agent' => 'Perfbase-PHP-SDK/1.0',
             'Content-Type' => 'application/json',
@@ -57,7 +57,7 @@ class ApiClient
         /** @var array<string, mixed> $httpClientConfig */
         $httpClientConfig = [];
 
-        $httpClientConfig['base_uri'] = $config->apiUrl;
+        $httpClientConfig['base_uri'] = $config->api_url;
         $httpClientConfig['timeout'] = $config->timeout;
 
         if ($config->proxy) {
