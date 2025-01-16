@@ -33,5 +33,5 @@ jobs:
       - name: Run PHPStan
         run: vendor/bin/phpstan analyse -c phpstan.neon
 
-      - name: Run Pest tests
-        run: ./vendor/bin/pest
+      - name: Run PHPUnit tests
+        run: ./vendor/bin/phpunit
