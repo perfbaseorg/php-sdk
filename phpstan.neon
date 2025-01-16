@@ -1,0 +1,8 @@
+parameters:
+    level: 10
+    treatPhpDocTypesAsCertain: false
+    paths:
+        - src
+        - tests
+    scanFiles:
+        - perfbase_extension_stubs.php

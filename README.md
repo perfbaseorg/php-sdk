@@ -1,6 +1,14 @@
 # Perfbase PHP SDK
 
-A PHP SDK for sending application profiling data to Perfbase. This SDK allows you to easily integrate performance monitoring into your PHP applications.
+A PHP SDK designed to facilitate seamless application profiling and performance monitoring with Perfbase. This SDK offers extensive configurability and enhanced profiling features for integration into your PHP applications.
+
+## Important: Using a PHP Framework?
+If you are already using a PHP framework, we highly recommend utilizing one of our dedicated framework integrations. We provide out-of-the-box support for popular frameworks, including Laravel, Symfony, and others.
+
+If you're NOT using a framework - this is the SDK for you!
+
+## Documentation
+Comprehensive documentation for all Perfbase libraries is available at: [https://docs.perfbase.com](https://docs.perfbase.com), including detailed information about data handling policies, security measures, legalities, and specifics on what data is transferred and how it is stored.
 
 ## Installation
 
@@ -12,73 +20,77 @@ composer require perfbase/php-sdk
 
 ## Requirements
 
-- PHP 8.0 or higher
-- Composer
+- PHP version `7.4` → `8.4`.
+- Composer 
+- `ext-curl`, `ext-json`, `ext-zlib` (Note: these are usually enabled by default)
+- The `perfbase` PHP extension installed and enabled.
 
 ## Quick Start
 
 ```php
-use Perfbase\SDK\Client;
+use Perfbase\SDK\Perfbase;
 use Perfbase\SDK\Config;
 
-// Initialize the client
-$client = new Client(new Config(
-    apiKey: 'your-api-key'
-));
+// Initialize the client with configuration
+$config = new Config('YOUR_API_KEY');
 
-// Start profiling
-$client->startProfiling();
+// Create a new instance of the Perfbase SDK
+$perfbase = new Perfbase($config);
+
+// Create a new profiling instance
+$instance = $perfbase->createInstance($config);
+$instance->startProfiling();
 
 // Your code here
 // ...
 
-// Stop profiling and send data
-$client->stopProfiling();
+// Stop profiling and send data to Perfbase
+$instance->stopProfiling();
+
+// Complete!
 ```
 
 ## Configuration
 
-You can configure the SDK using either direct initialization or an array:
+You can configure the SDK using direct initialization or an array:
 
 ```php
 // Direct initialization
 $config = new Config(
-    apiKey: 'your-api-key',
-    apiUrl: 'https://api.perfbase.com/v1', // Optional
-    enabled: true,                         // Optional
-    timeout: 1                             // Optional
+    apiKey: 'YOUR_API_KEY',
+    track_file_operations: true
+    // ...
 );
 
-// Or using an array
+// Using an array
 $config = Config::fromArray([
-    'api_key' => 'your-api-key',
-    'api_url' => 'https://api.perfbase.com/v1',
-    'enabled' => true,
-    'timeout' => 1
+    'api_key' => 'YOUR_API_KEY',
+    'track_pdo' => true,
+    'track_caches' => true
+    // ...
 ]);
 ```
 
 ### Configuration Options
 
-| Option    | Type    | Default                       | Description                    |
-| --------- | ------- | ----------------------------- | ------------------------------ |
-| `api_key` | string  | required                      | Your Perfbase API key          |
-| `api_url` | string  | `https://api.perfbase.com/v1` | API endpoint URL               |
-| `enabled` | boolean | `true`                        | Enable/disable profiling       |
-| `timeout` | integer | `1`                           | API request timeout in seconds |
-
-## Collected Data
-
-The SDK collects the following metrics:
-
-- Timestamp
-- Duration
-- Memory peak usage
-- Stack traces with:
-  - File and line information
-  - Function names
-  - Execution time
-  - Memory usage
+| Option                    | Type    | Default  | Description                                  |
+|---------------------------|---------|----------|----------------------------------------------|
+| `api_key`                 | string  | required | Your Perfbase API key                        |
+| `ignored_functions`       | array   | `[]`     | List of functions to ignore during profiling |
+| `use_coarse_clock`        | boolean | `false`  | Use faster but less accurate timing          |
+| `track_file_compilation`  | boolean | `true`   | Track PHP file compilation times             |
+| `track_memory_allocation` | boolean | `false`  | Track memory allocation/deallocation         |
+| `track_cpu_time`          | boolean | `true`   | Track CPU usage                              |
+| `track_pdo`               | boolean | `true`   | Track PDO database operations                |
+| `track_http`              | boolean | `true`   | Track HTTP requests                          |
+| `track_caches`            | boolean | `true`   | Track caching mechanisms                     |
+| `track_mongodb`           | boolean | `true`   | Track MongoDB operations                     |
+| `track_elasticsearch`     | boolean | `true`   | Track Elasticsearch operations               |
+| `track_queues`            | boolean | `true`   | Track queue operations                       |
+| `track_aws_sdk`           | boolean | `true`   | Track AWS SDK operations                     |
+| `track_file_operations`   | boolean | `true`   | Track file operations                        |
+| `proxy`                   | string  | `null`   | Use http/https proxy server for API requests |
+| `timeout`                 | int     | `10`     | Timeout for API requests in seconds          |
 
 ## License
 

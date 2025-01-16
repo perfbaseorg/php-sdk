@@ -2,103 +2,106 @@
 
 namespace Perfbase\SDK\Http;
 
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Client as GuzzleClient;
+use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Promise\Utils;
+use JsonException;
 use Perfbase\SDK\Config;
-use Perfbase\SDK\Exception\PerfbaseException;
+use Perfbase\SDK\Exception\PerfbaseApiKeyMissingException;
+use Throwable;
 
 class ApiClient
 {
+    /**
+     * Configuration object for the SDK
+     * @var Config
+     */
     private Config $config;
+
+    /**
+     * Default headers to send with each request
+     * @var array<string, string>
+     */
     private array $defaultHeaders;
-    private Client $httpClient;
+
+    /**
+     * HTTP client to send requests.
+     * @var GuzzleClient
+     */
+    private GuzzleClient $httpClient;
+
+    /**
+     * Promises to settle before the client is destroyed
+     * @var array<PromiseInterface>
+     */
     private array $promises = [];
 
+    /**
+     * @throws PerfbaseApiKeyMissingException
+     */
     public function __construct(Config $config)
     {
+        if (!is_string($config->apiKey)) {
+            throw new PerfbaseApiKeyMissingException();
+        }
+
         $this->config = $config;
+
         $this->defaultHeaders = [
-            'Authorization' => 'Bearer ' . $this->config->getApiKey(),
+            'Authorization' => 'Bearer ' . $this->config->apiKey,
             'Accept' => 'application/json',
             'User-Agent' => 'Perfbase-PHP-SDK/1.0',
             'Content-Type' => 'application/json',
         ];
-        $this->httpClient = new Client([
-            'base_uri' => rtrim($this->config->getApiUrl(), '/') . '/',
-            'timeout' => 10.0, // Adjust timeout as needed
-        ]);
+
+        /** @var array<string, mixed> $httpClientConfig */
+        $httpClientConfig = [];
+
+        $httpClientConfig['base_uri'] = $config->apiUrl;
+        $httpClientConfig['timeout'] = $config->timeout;
+
+        if ($config->proxy) {
+            $httpClientConfig['proxy'] = $config->proxy;
+        }
+
+        $this->httpClient = new GuzzleClient($httpClientConfig);
     }
 
     /**
      * Sends a POST request to the specified API endpoint
      *
      * @param string $endpoint API endpoint to send the request to
-     * @param array $data Data to send in the request body
+     * @param array<mixed> $data Data to send in the request body
      * @param bool $async If true, send asynchronously; if false, wait for response
      *
-     * @return array|null Response data from the API, or null if non-blocking
-     * @throws PerfbaseException|GuzzleException When the HTTP request fails or returns an error
+     * @return string|null Response data from the API, or null if non-blocking
+     * @throws JsonException When the HTTP request fails or returns an error
      */
-    public function post(string $endpoint, array $data, bool $async = true): ?array
+    public function post(string $endpoint, array $data, bool $async = false): ?string
     {
-        // Convert data to JSON and compress
-        $jsonData = json_encode($data);
-        if ($jsonData === false) {
-            throw new PerfbaseException('Failed to encode data as JSON: ' . json_last_error_msg());
-        }
-
-        $compressedData = gzencode($jsonData);
-        if ($compressedData === false) {
-            throw new PerfbaseException('Failed to gzip compress the request data.');
-        }
-
         // Prepare request options
         $options = [
-            'headers' => array_merge($this->defaultHeaders, ['Content-Encoding' => 'gzip']),
-            'body' => $compressedData,
+            'headers' => array_merge($this->defaultHeaders, []),
+            'body' => json_encode($data, JSON_THROW_ON_ERROR),
         ];
 
-        if ($async) {
-            // Send an asynchronous (non-blocking) request
-            $promise = $this->httpClient->postAsync($endpoint, $options);
-
-            // Optionally handle the promise's fulfillment or rejection
-            $promise->then(
-                function ($response) {
-                    // Success callback (optional)
-                },
-                function ($exception) {
-                    // Error callback (optional)
-                }
-            );
-
-            // Store the promise to settle later
-            $this->promises[] = $promise;
-
-            // Return null since we won't have a response immediately
-            return null;
-        } else {
-            // Send a synchronous (blocking) request
-            try {
+        try {
+            if ($async) {
+                $this->promises[] = $this->httpClient->postAsync($endpoint, $options);
+                return null;
+            } else {
                 $response = $this->httpClient->post($endpoint, $options);
-                $body = (string)$response->getBody();
-                $decodedResponse = json_decode($body, true);
-
-                if (json_last_error() !== JSON_ERROR_NONE) {
-                    throw new PerfbaseException('Failed to decode API response: ' . json_last_error_msg());
-                }
-
-                return $decodedResponse;
-            } catch (\Exception $e) {
-                throw new PerfbaseException('HTTP Request failed: ' . $e->getMessage());
+                return (string)$response->getBody();
             }
+        } catch (Throwable $e) {
+            // throw new PerfbaseException('HTTP Request failed: ' . $e->getMessage());
         }
+        return null;
     }
 
     public function __destruct()
     {
-        // Attempt to settle all outstanding promises without blocking
+        // Attempt to settle all outstanding async HTTP promises without blocking
         if (!empty($this->promises)) {
             Utils::settle($this->promises)->wait(false);
         }
