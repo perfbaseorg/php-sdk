@@ -149,8 +149,7 @@ class TraceInstance
             'http_status_code' => $this->attributes->httpStatusCode,
             'http_url' => $this->attributes->httpUrl,
             'perf_data' => json_encode($this->performanceData),
-            'meta_data' => json_encode($this->metaData),
-            'duration' => 1234,
+            'meta_data' => json_encode($this->metaData)
         ];
     }
 }
