@@ -54,7 +54,7 @@ class ApiClientTest extends \PHPUnit\Framework\TestCase
      * @throws JsonException
      * @covers ::get
      */
-    public function testSendsSynchronousPostRequestAndReturnsResponse(): void
+    public function testSendsSynchronousSubmitRequestAndReturnsResponse(): void
     {
         $mock = new MockHandler([
             new Response(200, [], 'Success'),
@@ -71,7 +71,7 @@ class ApiClientTest extends \PHPUnit\Framework\TestCase
         $property->setAccessible(true);
         $property->setValue($apiClient, $guzzleClient);
 
-        $response = $apiClient->post('/test-endpoint', ['key' => 'value'], false);
+        $response = $apiClient->submitTrace(['key' => 'value'], false);
 
         $this->assertSame('Success', $response);
     }
@@ -82,7 +82,7 @@ class ApiClientTest extends \PHPUnit\Framework\TestCase
      * @throws PerfbaseApiKeyMissingException
      * @covers ::post
      */
-    public function testSendsAsynchronousPostRequestAndDoesNotBlock(): void
+    public function testSendsAsynchronousSubmitRequestAndDoesNotBlock(): void
     {
         $mock = new MockHandler([
             new Response(200, [], 'Success'),
@@ -99,7 +99,7 @@ class ApiClientTest extends \PHPUnit\Framework\TestCase
         $property->setAccessible(true);
         $property->setValue($apiClient, $guzzleClient);
 
-        $response = $apiClient->post('/test-endpoint', ['key' => 'value'], true);
+        $response = $apiClient->submitTrace(['key' => 'value'], true);
 
         $this->assertNull($response);
 

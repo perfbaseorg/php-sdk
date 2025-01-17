@@ -4,6 +4,7 @@ namespace Perfbase\SDK\Tracing;
 
 use JsonException;
 use Perfbase\SDK\Config;
+use Perfbase\SDK\Exception\PerfbaseApiKeyMissingException;
 use Perfbase\SDK\Exception\PerfbaseStateException;
 use Perfbase\SDK\Http\ApiClient;
 
@@ -47,7 +48,7 @@ class TraceInstance
 
     /**
      * @param Config $config
-     * @throws \Perfbase\SDK\Exception\PerfbaseApiKeyMissingException
+     * @throws PerfbaseApiKeyMissingException
      */
     public function __construct(Config $config)
     {
@@ -133,7 +134,7 @@ class TraceInstance
      */
     public function sendProfilingData(): void
     {
-        $this->apiClient->post('/submit',
+        $this->apiClient->submitTrace(
             $this->transformData(),
             $this->config->async_delivery
         );

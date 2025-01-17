@@ -77,7 +77,7 @@ class ApiClient
      * @return string|null Response data from the API, or null if non-blocking
      * @throws JsonException When the HTTP request fails or returns an error
      */
-    public function post(string $endpoint, array $data, bool $async = true): ?string
+    private function post(string $endpoint, array $data, bool $async = true): ?string
     {
         // Prepare request options
         $options = [
@@ -97,6 +97,20 @@ class ApiClient
             // throw new PerfbaseException('HTTP Request failed: ' . $e->getMessage());
         }
         return null;
+    }
+
+    /**
+     * Submits a trace to the Perfbase API
+     *
+     * @param array<mixed> $data Data to send in the request body
+     * @param bool $async If true, send asynchronously; if false, wait for response
+     *
+     * @return string|null Response data from the API, or null if non-blocking
+     * @throws JsonException When the HTTP request fails or returns an error
+     */
+    public function submitTrace(array $data, bool $async = true): ?string
+    {
+        return $this->post('/submit', $data, $async);
     }
 
     public function __destruct()
