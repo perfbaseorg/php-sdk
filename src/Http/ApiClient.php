@@ -77,7 +77,7 @@ class ApiClient
      * @return string|null Response data from the API, or null if non-blocking
      * @throws JsonException When the HTTP request fails or returns an error
      */
-    public function post(string $endpoint, array $data, bool $async = false): ?string
+    public function post(string $endpoint, array $data, bool $async = true): ?string
     {
         // Prepare request options
         $options = [

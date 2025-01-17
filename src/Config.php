@@ -141,6 +141,12 @@ class Config
      */
     public int $timeout = 10;
 
+    /**
+     * Enable asynchronous delivery of profiling data
+     * @var bool
+     */
+    public bool $async_delivery = true;
+
 
     /**
      * @param string|null $api_key
@@ -161,6 +167,7 @@ class Config
      * @param bool|null $track_aws_sdk
      * @param bool|null $track_file_operations
      * @param string|null $proxy
+     * @param bool|null $async_delivery
      */
     public function __construct(
         ?string $api_key = null,
@@ -180,7 +187,8 @@ class Config
         ?bool   $track_queues = null,
         ?bool   $track_aws_sdk = null,
         ?bool   $track_file_operations = null,
-        ?string $proxy = null
+        ?string $proxy = null,
+        ?bool   $async_delivery = null
     )
     {
         // Get all the properties of this class

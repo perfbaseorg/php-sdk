@@ -71,7 +71,7 @@ class ApiClientTest extends \PHPUnit\Framework\TestCase
         $property->setAccessible(true);
         $property->setValue($apiClient, $guzzleClient);
 
-        $response = $apiClient->post('/test-endpoint', ['key' => 'value']);
+        $response = $apiClient->post('/test-endpoint', ['key' => 'value'], false);
 
         $this->assertSame('Success', $response);
     }

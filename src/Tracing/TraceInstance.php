@@ -126,7 +126,8 @@ class TraceInstance
     public function sendProfilingData(): void
     {
         $this->apiClient->post('/submit',
-            $this->transformData()
+            $this->transformData(),
+            $this->config->async_delivery
         );
     }
 
