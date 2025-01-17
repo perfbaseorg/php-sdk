@@ -110,7 +110,7 @@ class ApiClient
      */
     public function submitTrace(array $data, bool $async = true): ?string
     {
-        return $this->post('/submit', $data, $async);
+        return $this->post('/v1/submit', $data, $async);
     }
 
     public function __destruct()
