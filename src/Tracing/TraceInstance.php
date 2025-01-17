@@ -9,38 +9,46 @@ use Perfbase\SDK\Http\ApiClient;
 
 class TraceInstance
 {
-
     /**
      * This is an array that can be used to store any additional metadata that
      * doesn't fit into the above fields.
      * @var array<string, scalar>
      */
     public array $metaData = [];
+
     /**
      * Manages the connection to the Perfbase API
      * @var ApiClient $apiClient
      */
     private ApiClient $apiClient;
+
     /**
      * The current state of the trace instance
      * @var TraceState
      */
     private TraceState $state;
+
     /**
      * Performance data collected during the profiling session
      * @var array<mixed>
      */
     private array $performanceData;
+
     /**
      * The raised fields associated with the trace instance
      * @var Attributes
      */
-    private Attributes $attributes;
+    public Attributes $attributes;
+
     /**
      * @var Config $config
      */
     private Config $config;
 
+    /**
+     * @param Config $config
+     * @throws \Perfbase\SDK\Exception\PerfbaseApiKeyMissingException
+     */
     public function __construct(Config $config)
     {
         $this->config = $config;
@@ -126,7 +134,8 @@ class TraceInstance
     public function sendProfilingData(): void
     {
         $this->apiClient->post('/submit',
-            $this->transformData()
+            $this->transformData(),
+            $this->config->async_delivery
         );
     }
 
@@ -149,8 +158,7 @@ class TraceInstance
             'http_status_code' => $this->attributes->httpStatusCode,
             'http_url' => $this->attributes->httpUrl,
             'perf_data' => json_encode($this->performanceData),
-            'meta_data' => json_encode($this->metaData),
-            'duration' => 1234,
+            'meta_data' => json_encode($this->metaData)
         ];
     }
 }
