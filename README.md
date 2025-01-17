@@ -1,4 +1,8 @@
-# Perfbase PHP SDK
+# Perfbase - PHP SDK
+
+![Packagist License](https://img.shields.io/packagist/l/perfbase/php-sdk)
+![Packagist Version](https://img.shields.io/packagist/v/perfbase/php-sdk)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/perfbaseorg/php-sdk/ci.yml?branch=main)
 
 A PHP SDK designed to facilitate seamless application profiling and performance monitoring with Perfbase. This SDK offers extensive configurability and enhanced profiling features for integration into your PHP applications.
 
@@ -98,7 +102,7 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 ## Support
 
-For support, please contact support@perfbase.com or visit our [documentation](https://docs.perfbase.com).
+For support, please contact [support@perfbase.com](support@perfbase.com) or visit our [documentation](https://docs.perfbase.com).
 
 ## Contributing
 
