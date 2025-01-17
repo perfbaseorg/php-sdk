@@ -30,9 +30,6 @@
   "config": {
     "allow-plugins": {
       "pestphp/pest-plugin": true
-    },
-    "platform": {
-      "php": "7.4"
     }
   }
 }
