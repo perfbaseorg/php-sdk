@@ -143,7 +143,7 @@ class TraceInstance
      * Transforms the collected data into a format that can be sent to the API
      * @return array<string, mixed>
      */
-    private function transformData(): array
+    public function transformData(): array
     {
         return [
             'action' => $this->attributes->action,

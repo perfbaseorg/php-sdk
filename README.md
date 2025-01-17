@@ -93,8 +93,9 @@ $config = Config::fromArray([
 | `track_queues`            | boolean | `true`   | Track queue operations                       |
 | `track_aws_sdk`           | boolean | `true`   | Track AWS SDK operations                     |
 | `track_file_operations`   | boolean | `true`   | Track file operations                        |
-| `proxy`                   | string  | `null`   | Use http/https proxy server for API requests |
-| `timeout`                 | int     | `10`     | Timeout for API requests in seconds          |
+| `proxy`                   | string  | `null`   | HTTP/HTTPS proxy for Perfbase API calls      |
+| `timeout`                 | int     | `10`     | Timeout seconds for Perfbase API calls       |
+| `async`                   | boolean | `true`   | Send traces to Perfbase API asynchronously   |
 
 ## License
 
