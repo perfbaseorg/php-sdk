@@ -26,6 +26,3 @@ RUN composer install --prefer-dist --no-progress --no-scripts
 
 # Add Composer's global bin directory to PATH
 ENV PATH="/composer/vendor/bin:$PATH"
-
-# Run tests as entrypoint (for CI automation)
-ENTRYPOINT ["sh", "-c", "vendor/bin/phpstan analyse -c phpstan.neon && ./vendor/bin/phpunit"]
