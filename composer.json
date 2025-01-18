@@ -3,7 +3,6 @@
   "description": "An SDK for sending profiling data to Perfbase",
   "type": "library",
   "license": "Apache-2.0",
-  "version": "0.0.8",
   "autoload": {
     "psr-4": {
       "Perfbase\\SDK\\": "src/"
@@ -31,10 +30,5 @@
     "phpstan/phpstan": "^2.1",
     "mockery/mockery": "^1.6",
     "phpunit/phpunit": "^9"
-  },
-  "config": {
-    "allow-plugins": {
-      "pestphp/pest-plugin": true
-    }
   }
 }
