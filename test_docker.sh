@@ -15,7 +15,7 @@ for VERSION in "${PHP_VERSIONS[@]}"; do
 
     if [ $? -eq 0 ]; then
       echo "Successfully built ${IMAGE_NAME}. Running tests..."
-      docker run --rm "$IMAGE_NAME"
+      docker run --rm "$IMAGE_NAME" -it 'sh -c php -d memory_limit=-1 vendor/bin/phpstan analyse -c phpstan.neon --memory-limit=2G && php -d memory_limit=-1 vendor/bin/phpunit'
 
       if [ $? -eq 0 ]; then
         echo "Tests passed for PHP ${VERSION}."

@@ -62,7 +62,9 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
             false,
             true,
             false,
-            'http://proxy:8080'
+            'http://proxy:8080',
+            1000,
+            false
         );
 
         $this->assertSame('test_api_key', $config->api_key);
@@ -83,6 +85,8 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
         $this->assertTrue($config->track_aws_sdk);
         $this->assertFalse($config->track_file_operations);
         $this->assertSame('http://proxy:8080', $config->proxy);
+        $this->assertSame(1000, $config->timeout);
+        $this->assertFalse($config->async_delivery);
     }
 
     /**

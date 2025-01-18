@@ -167,6 +167,7 @@ class Config
      * @param bool|null $track_aws_sdk
      * @param bool|null $track_file_operations
      * @param string|null $proxy
+     * @param int|null $timeout
      * @param bool|null $async_delivery
      */
     public function __construct(
@@ -188,6 +189,7 @@ class Config
         ?bool   $track_aws_sdk = null,
         ?bool   $track_file_operations = null,
         ?string $proxy = null,
+        ?int    $timeout = null,
         ?bool   $async_delivery = null
     )
     {
