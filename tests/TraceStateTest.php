@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests;
+namespace Perfbase\SDK\Tests;
 
 use Perfbase\SDK\Exception\PerfbaseStateException;
 use Perfbase\SDK\Tracing\TraceState;
@@ -8,7 +8,7 @@ use Perfbase\SDK\Tracing\TraceState;
 /**
  * @coversDefaultClass \Perfbase\SDK\Tracing\TraceState
  */
-class TraceStateTest extends \PHPUnit\Framework\TestCase
+class TraceStateTest extends BaseTest
 {
     /**
      * @covers ::__construct

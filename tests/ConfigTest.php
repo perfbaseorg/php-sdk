@@ -1,11 +1,13 @@
 <?php
 
+namespace Perfbase\SDK\Tests;
+
 use Perfbase\SDK\Config;
 
 /**
  * @coversDefaultClass \Perfbase\SDK\Config
  */
-class ConfigTest extends \PHPUnit\Framework\TestCase
+class ConfigTest extends BaseTest
 {
     /**
      * Test the default configuration values

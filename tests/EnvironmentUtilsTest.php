@@ -1,13 +1,13 @@
 <?php
 
-namespace Tests;
+namespace Perfbase\SDK\Tests;
 
 use Perfbase\SDK\Utils\EnvironmentUtils;
 
 /**
  * @coversDefaultClass \Perfbase\SDK\Utils\EnvironmentUtils
  */
-class EnvironmentUtilsTest extends \PHPUnit\Framework\TestCase
+class EnvironmentUtilsTest extends BaseTest
 {
     protected function tearDown(): void
     {

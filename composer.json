@@ -9,6 +9,11 @@
       "Perfbase\\SDK\\": "src/"
     }
   },
+  "autoload-dev": {
+    "psr-4": {
+      "Perfbase\\SDK\\Tests\\": "tests/"
+    }
+  },
   "authors": [
     {
       "name": "Ben Poulson",
