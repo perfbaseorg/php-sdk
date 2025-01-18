@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests;
+namespace Perfbase\SDK\Tests;
 
 use GuzzleHttp\Client as GuzzleClient;
 use GuzzleHttp\Handler\MockHandler;
@@ -16,7 +16,7 @@ use ReflectionClass;
 /**
  * @coversDefaultClass \Perfbase\SDK\Http\ApiClient
  */
-class ApiClientTest extends \PHPUnit\Framework\TestCase
+class ApiClientTest extends BaseTest
 {
 
     /**

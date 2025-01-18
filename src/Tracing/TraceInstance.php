@@ -2,6 +2,7 @@
 
 namespace Perfbase\SDK\Tracing;
 
+use http\Exception\RuntimeException;
 use JsonException;
 use Perfbase\SDK\Config;
 use Perfbase\SDK\Exception\PerfbaseApiKeyMissingException;
@@ -146,6 +147,27 @@ class TraceInstance
      */
     public function transformData(): array
     {
+        // Compress the performance data
+        $compressedPerfData = gzencode(json_encode($this->performanceData), -1, FORCE_GZIP);
+        if ($compressedPerfData === false) {
+            throw new RuntimeException('Failed to compress performance data');
+        }
+        $perfData = base64_encode($compressedPerfData);
+        unset($compressedPerfData);
+
+        // Compress the metadata, if any
+        if (count($this->metaData)) {
+            $compressedMetaData = gzencode(json_encode($this->metaData), -1, FORCE_GZIP);
+            if ($compressedMetaData === false) {
+                throw new RuntimeException('Failed to compress performance data');
+            }
+            $metaData = base64_encode($compressedMetaData);
+            unset($compressedMetaData);
+        } else {
+            $metaData = null;
+        }
+
+        // Return the transformed data
         return [
             'action' => $this->attributes->action,
             'user_id' => $this->attributes->userId,
@@ -158,8 +180,8 @@ class TraceInstance
             'http_method' => $this->attributes->httpMethod,
             'http_status_code' => $this->attributes->httpStatusCode,
             'http_url' => $this->attributes->httpUrl,
-            'perf_data' => json_encode($this->performanceData),
-            'meta_data' => json_encode($this->metaData)
+            'perf_data' => $perfData,
+            'meta_data' => $metaData
         ];
     }
 }

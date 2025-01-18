@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests;
+namespace Perfbase\SDK\Tests;
 
 use Perfbase\SDK\Exception\PerfbaseException;
 use Perfbase\SDK\Exception\PerfbaseTranslationNotFoundException;
@@ -9,7 +9,7 @@ use Perfbase\SDK\Utils\TranslationUtil;
 /**
  * @coversDefaultClass \Perfbase\SDK\Utils\TranslationUtil
  */
-class TranslationUtilTest extends \PHPUnit\Framework\TestCase
+class TranslationUtilTest extends BaseTest
 {
 
     /**
