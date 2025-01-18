@@ -32,7 +32,7 @@ class TraceInstance
 
     /**
      * Performance data collected during the profiling session
-     * @var array<mixed>
+     * @var array<string, array<null|string|int>>
      */
     private array $performanceData;
 
@@ -116,6 +116,7 @@ class TraceInstance
         perfbase_disable();
 
         // Retrieve the collected performance data
+        // @phpstan-ignore-next-line
         $this->performanceData = perfbase_get_data();
 
         // Reset the extension, so we can start a new profiling session
@@ -148,7 +149,9 @@ class TraceInstance
     public function transformData(): array
     {
         // Compress the performance data and metadata
-        $perfData = $this->encodeAndCompressData($this->performanceData);
+        $perfData = $this->encodeAndCompressData(
+            $this->shrinkProfilingData($this->performanceData)
+        );
         $metaData = count($this->metaData) ? $this->encodeAndCompressData($this->metaData) : null;
 
         // Return the transformed data
@@ -180,10 +183,42 @@ class TraceInstance
             throw new RuntimeException('Failed to encode data');
         }
 
-        $compressed = gzencode($json, -1, FORCE_GZIP);
+        $compressed = gzencode($json, 6, FORCE_GZIP);
         if ($compressed === false) {
             throw new RuntimeException('Failed to compress data');
         }
         return base64_encode($compressed);
+    }
+
+    /**
+     * The idea behind this is that there's a VAST amount of repetition in the hierarchy data.
+     * We can compress this by creating a map of all the unique keys and then replacing the keys
+     * with their index in the map. This shrinks the performance data to (usually) 5-10% of
+     * the original size.
+     * @param array<string, mixed> $data
+     * @return array<mixed>
+     */
+    private function shrinkProfilingData(array $data): array
+    {
+        $map = [];
+        $mapIndex = []; // Reverse lookup for faster array_search equivalent
+        $output = [];
+
+        foreach ($data as $k => $v) {
+            $keys = [];
+            $exploded = explode('~', $k);
+
+            foreach ($exploded as $part) {
+                if (!isset($mapIndex[$part])) {
+                    $map[] = $part;
+                    $mapIndex[$part] = count($map) - 1;
+                }
+                $keys[] = $mapIndex[$part];
+            }
+
+            $output[] = [$keys, $v];
+        }
+
+        return [$map, $output];
     }
 }

@@ -72,12 +72,12 @@ class TraceInstanceTest extends BaseTest
         $config->api_key = 'test_api';
         $traceInstance = new TraceInstance($config);
 
-        $perfSample = ['php~example~function' => null];
-        $metaSample = ['hello' => 'world'];
+        $perfInput = ['php~example~function' => [null, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]];
+        $metaInput = ['hello' => 'world'];
 
         // Test with empty performance data
-        $this->setPrivateField($traceInstance, 'performanceData', $perfSample);
-        $this->setPrivateField($traceInstance, 'metaData', $metaSample);
+        $this->setPrivateField($traceInstance, 'performanceData', $perfInput);
+        $this->setPrivateField($traceInstance, 'metaData', $metaInput);
 
         // Transform data for sending
         $transformed = $traceInstance->transformData();
@@ -86,14 +86,19 @@ class TraceInstanceTest extends BaseTest
         $decodedPerfData = json_decode(gzdecode(base64_decode($transformed['perf_data'])), true);
         $decodedMetaData = json_decode(gzdecode(base64_decode($transformed['meta_data'])), true);
 
+        // Expected output
+        $expectedPerfOutput = [
+            ['php', 'example', 'function'],
+            [[[0, 1, 2], [null, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]]]
+        ];
 
         // Assert that the transformed data is the same as the original data
-        $this->assertEquals($perfSample, $decodedPerfData);
-        $this->assertEquals($metaSample, $decodedMetaData);
+        $this->assertEquals($decodedPerfData, $expectedPerfOutput);
+        $this->assertEquals($metaInput, $decodedMetaData);
 
         // Double check previous assert for validity against invalid data
-        $this->assertNotEquals($perfSample, $decodedMetaData);
-        $this->assertNotEquals($metaSample, $decodedPerfData);
+        $this->assertNotEquals($decodedPerfData, $decodedMetaData);
+        $this->assertNotEquals($metaInput, $expectedPerfOutput);
     }
 
 
