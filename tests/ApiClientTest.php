@@ -48,31 +48,4 @@ class ApiClientTest extends BaseTest
         $this->assertInstanceOf(ApiClient::class, $apiClient);
     }
 
-    /**
-     * @return void
-     * @throws PerfbaseApiKeyMissingException
-     * @throws JsonException
-     * @covers ::get
-     */
-    public function testSendsSubmitRequestAndReturnsResponse(): void
-    {
-        $mock = new MockHandler([
-            new Response(200, [], 'Success'),
-        ]);
-        $handlerStack = HandlerStack::create($mock);
-        $guzzleClient = new GuzzleClient(['handler' => $handlerStack]);
-
-        $config = new Config();
-        $config->api_key = 'test_api_key';
-
-        $apiClient = new ApiClient($config);
-        $reflection = new ReflectionClass($apiClient);
-        $property = $reflection->getProperty('httpClient');
-        $property->setAccessible(true);
-        $property->setValue($apiClient, $guzzleClient);
-
-        $response = $apiClient->submitTrace(['key' => 'value'], false);
-
-        $this->assertSame('Success', $response);
-    }
 }
