@@ -88,7 +88,6 @@ class ConfigTest extends BaseTest
         $this->assertFalse($config->track_file_operations);
         $this->assertSame('http://proxy:8080', $config->proxy);
         $this->assertSame(1000, $config->timeout);
-        $this->assertFalse($config->async_delivery);
     }
 
     /**

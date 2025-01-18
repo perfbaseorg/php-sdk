@@ -3,8 +3,6 @@
 namespace Perfbase\SDK\Http;
 
 use GuzzleHttp\Client as GuzzleClient;
-use GuzzleHttp\Promise\PromiseInterface;
-use GuzzleHttp\Promise\Utils;
 use JsonException;
 use Perfbase\SDK\Config;
 use Perfbase\SDK\Exception\PerfbaseApiKeyMissingException;
@@ -31,12 +29,6 @@ class ApiClient
     private GuzzleClient $httpClient;
 
     /**
-     * Promises to settle before the client is destroyed
-     * @var array<PromiseInterface>
-     */
-    private array $promises = [];
-
-    /**
      * @throws PerfbaseApiKeyMissingException
      */
     public function __construct(Config $config)
@@ -46,24 +38,25 @@ class ApiClient
         }
 
         $this->config = $config;
-
         $this->defaultHeaders = [
             'Authorization' => 'Bearer ' . $this->config->api_key,
             'Accept' => 'application/json',
             'User-Agent' => 'Perfbase-PHP-SDK/1.0',
             'Content-Type' => 'application/json',
+            'Connection' => 'keep-alive',
         ];
 
         /** @var array<string, mixed> $httpClientConfig */
         $httpClientConfig = [];
-
         $httpClientConfig['base_uri'] = $config->api_url;
         $httpClientConfig['timeout'] = $config->timeout;
 
+        // Set up proxy if configured
         if ($config->proxy) {
             $httpClientConfig['proxy'] = $config->proxy;
         }
 
+        // Set up the HTTP client
         $this->httpClient = new GuzzleClient($httpClientConfig);
     }
 
@@ -72,12 +65,10 @@ class ApiClient
      *
      * @param string $endpoint API endpoint to send the request to
      * @param array<mixed> $data Data to send in the request body
-     * @param bool $async If true, send asynchronously; if false, wait for response
-     *
-     * @return string|null Response data from the API, or null if non-blocking
-     * @throws JsonException When the HTTP request fails or returns an error
+     * @return void
+     * @throws JsonException
      */
-    private function post(string $endpoint, array $data, bool $async = true): ?string
+    private function submit(string $endpoint, array $data): void
     {
         // Prepare request options
         $options = [
@@ -86,38 +77,23 @@ class ApiClient
         ];
 
         try {
-            if ($async) {
-                $this->promises[] = $this->httpClient->postAsync($endpoint, $options);
-                return null;
-            } else {
-                $response = $this->httpClient->post($endpoint, $options);
-                return (string)$response->getBody();
-            }
+            $this->httpClient->post($endpoint, $options);
         } catch (Throwable $e) {
             // throw new PerfbaseException('HTTP Request failed: ' . $e->getMessage());
         }
-        return null;
     }
 
     /**
      * Submits a trace to the Perfbase API
      *
      * @param array<mixed> $data Data to send in the request body
-     * @param bool $async If true, send asynchronously; if false, wait for response
+     * @return void
      *
-     * @return string|null Response data from the API, or null if non-blocking
      * @throws JsonException When the HTTP request fails or returns an error
      */
-    public function submitTrace(array $data, bool $async = true): ?string
+    public function submitTrace(array $data): void
     {
-        return $this->post('/v1/submit', $data, $async);
+        $this->submit('/v1/submit', $data);
     }
 
-    public function __destruct()
-    {
-        // Attempt to settle all outstanding async HTTP promises without blocking
-        if (!empty($this->promises)) {
-            Utils::settle($this->promises)->wait(false);
-        }
-    }
 }
