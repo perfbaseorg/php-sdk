@@ -95,7 +95,6 @@ $config = Config::fromArray([
 | `track_file_operations`   | boolean | `true`   | Track file operations                        |
 | `proxy`                   | string  | `null`   | HTTP/HTTPS proxy for Perfbase API calls      |
 | `timeout`                 | int     | `10`     | Timeout seconds for Perfbase API calls       |
-| `async`                   | boolean | `true`   | Send traces to Perfbase API asynchronously   |
 
 ## License
 

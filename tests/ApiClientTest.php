@@ -54,7 +54,7 @@ class ApiClientTest extends BaseTest
      * @throws JsonException
      * @covers ::get
      */
-    public function testSendsSynchronousSubmitRequestAndReturnsResponse(): void
+    public function testSendsSubmitRequestAndReturnsResponse(): void
     {
         $mock = new MockHandler([
             new Response(200, [], 'Success'),
@@ -74,43 +74,5 @@ class ApiClientTest extends BaseTest
         $response = $apiClient->submitTrace(['key' => 'value'], false);
 
         $this->assertSame('Success', $response);
-    }
-
-    /**
-     * @return void
-     * @throws JsonException
-     * @throws PerfbaseApiKeyMissingException
-     * @covers ::post
-     */
-    public function testSendsAsynchronousSubmitRequestAndDoesNotBlock(): void
-    {
-        $mock = new MockHandler([
-            new Response(200, [], 'Success'),
-        ]);
-        $handlerStack = HandlerStack::create($mock);
-        $guzzleClient = new GuzzleClient(['handler' => $handlerStack]);
-
-        $config = new Config();
-        $config->api_key = 'test_api_key';
-
-        $apiClient = new ApiClient($config);
-        $reflection = new ReflectionClass($apiClient);
-        $property = $reflection->getProperty('httpClient');
-        $property->setAccessible(true);
-        $property->setValue($apiClient, $guzzleClient);
-
-        $response = $apiClient->submitTrace(['key' => 'value'], true);
-
-        $this->assertNull($response);
-
-        // Check if promises array is populated
-        $promisesProperty = $reflection->getProperty('promises');
-        $promisesProperty->setAccessible(true);
-
-        /** @var array<PromiseInterface> $promises */
-        $promises = $promisesProperty->getValue($apiClient);
-        $this->assertIsArray($promises);
-        $this->assertCount(1, $promises);
-        $this->assertInstanceOf(PromiseInterface::class, $promises[0]);
     }
 }

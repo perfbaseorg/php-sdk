@@ -103,6 +103,7 @@ class TraceInstance
      * The data is automatically sent to the Perfbase API for analysis.
      * @param bool $andSend If true, send the collected data to the API; if false, do not send
      * @throws PerfbaseStateException
+     * @throws JsonException
      */
     public function stopProfiling(bool $andSend = true): void
     {
@@ -136,8 +137,7 @@ class TraceInstance
     public function sendProfilingData(): void
     {
         $this->apiClient->submitTrace(
-            $this->transformData(),
-            $this->config->async_delivery
+            $this->transformData()
         );
     }
 
