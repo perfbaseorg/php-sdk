@@ -38,4 +38,22 @@ abstract class BaseTest extends TestCase
         $property->setAccessible(true);
         $property->setValue($object, $value);
     }
+
+
+    /**
+     * Invokes a private or protected method on an object.
+     *
+     * @param object $object The object containing the private method.
+     * @param string $methodName The name of the method to invoke.
+     * @param array $parameters The parameters to pass to the method.
+     * @return mixed The result of the method invocation.
+     * @throws \ReflectionException If the method does not exist.
+     */
+    protected function invokePrivateMethod(object $object, string $methodName, array $parameters = [])
+    {
+        $reflection = new \ReflectionClass($object);
+        $method = $reflection->getMethod($methodName);
+        $method->setAccessible(true);
+        return $method->invokeArgs($object, $parameters);
+    }
 }
