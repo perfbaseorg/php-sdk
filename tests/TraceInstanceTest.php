@@ -95,4 +95,42 @@ class TraceInstanceTest extends BaseTest
         $this->assertNotEquals($perfSample, $decodedMetaData);
         $this->assertNotEquals($metaSample, $decodedPerfData);
     }
+
+
+    /**
+     * @covers ::__construct
+     * @return void
+     * @throws PerfbaseApiKeyMissingException
+     * @throws ReflectionException
+     */
+    public function testEncodesAndCompressesDataCorrectly(): void
+    {
+        $config = new Config();
+        $config->api_key = 'test_api';
+        $traceInstance = new TraceInstance($config);
+
+        $sampleData = ['hello' => 'world', 'foo' => 'bar'];
+
+        /** @var string $output */
+        $result = $this->invokePrivateMethod($traceInstance, 'encodeAndCompressData', [$sampleData]);
+
+        // Should be base64 string
+        $this->assertIsString($result);
+
+        // Should be gzipped json
+        $result = gzdecode(base64_decode($result));
+
+        // Should be json string again
+        $this->assertIsString($result);
+
+        // Should decode to original data
+        /** @var array<string, string> $output */
+        $output = json_decode($result, true);
+
+        // Should be same as original data
+        $this->assertEquals($sampleData, $output);
+        $this->assertEquals($output['hello'], 'world');
+        $this->assertEquals($output['foo'], 'bar');
+
+    }
 }

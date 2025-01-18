@@ -147,25 +147,9 @@ class TraceInstance
      */
     public function transformData(): array
     {
-        // Compress the performance data
-        $compressedPerfData = gzencode(json_encode($this->performanceData), -1, FORCE_GZIP);
-        if ($compressedPerfData === false) {
-            throw new RuntimeException('Failed to compress performance data');
-        }
-        $perfData = base64_encode($compressedPerfData);
-        unset($compressedPerfData);
-
-        // Compress the metadata, if any
-        if (count($this->metaData)) {
-            $compressedMetaData = gzencode(json_encode($this->metaData), -1, FORCE_GZIP);
-            if ($compressedMetaData === false) {
-                throw new RuntimeException('Failed to compress performance data');
-            }
-            $metaData = base64_encode($compressedMetaData);
-            unset($compressedMetaData);
-        } else {
-            $metaData = null;
-        }
+        // Compress the performance data and metadata
+        $perfData = $this->encodeAndCompressData($this->performanceData);
+        $metaData = count($this->metaData) ? $this->encodeAndCompressData($this->metaData) : null;
 
         // Return the transformed data
         return [
@@ -183,5 +167,23 @@ class TraceInstance
             'perf_data' => $perfData,
             'meta_data' => $metaData
         ];
+    }
+
+    /**
+     * @param array<mixed> $data
+     * @return string
+     */
+    private function encodeAndCompressData(array $data): string
+    {
+        $json = json_encode($data);
+        if ($json === false) {
+            throw new RuntimeException('Failed to encode data');
+        }
+
+        $compressed = gzencode($json, -1, FORCE_GZIP);
+        if ($compressed === false) {
+            throw new RuntimeException('Failed to compress data');
+        }
+        return base64_encode($compressed);
     }
 }
