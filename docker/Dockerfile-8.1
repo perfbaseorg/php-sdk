@@ -18,11 +18,13 @@ COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 # Set working directory
 WORKDIR /app
 
-# Copy project files to container
-COPY . .
+COPY composer.json ./composer.json
 
 # Install PHP dependencies
 RUN composer install --prefer-dist --no-progress --no-scripts
+
+# Copy project files to container
+COPY . .
 
 # Add Composer's global bin directory to PATH
 ENV PATH="/composer/vendor/bin:$PATH"
