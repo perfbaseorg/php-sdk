@@ -2,12 +2,13 @@
 
 namespace Perfbase\SDK\Tracing;
 
-use http\Exception\RuntimeException;
 use JsonException;
 use Perfbase\SDK\Config;
-use Perfbase\SDK\Exception\PerfbaseApiKeyMissingException;
+use Perfbase\SDK\Exception\PerfbaseEncodingException;
+use Perfbase\SDK\Exception\PerfbaseInvalidConfigException;
 use Perfbase\SDK\Exception\PerfbaseStateException;
 use Perfbase\SDK\Http\ApiClient;
+use Perfbase\SDK\Tracing\Compression\Compressor;
 
 class TraceInstance
 {
@@ -49,7 +50,7 @@ class TraceInstance
 
     /**
      * @param Config $config
-     * @throws PerfbaseApiKeyMissingException
+     * @throws PerfbaseInvalidConfigException
      */
     public function __construct(Config $config)
     {
@@ -72,7 +73,7 @@ class TraceInstance
     {
         // Check if the state is new, otherwise we cannot start a new profiling session
         if ($this->state->isNew() === false) {
-            throw new PerfbaseStateException('instance_already_active');
+            throw new PerfbaseStateException('A profiling instance is already active and cannot be started again.');
         }
 
         // Enable the Perfbase profiler
@@ -109,7 +110,7 @@ class TraceInstance
     {
         // State should be active, otherwise we cannot stop the profiling
         if ($this->state->isActive() === false) {
-            throw new PerfbaseStateException('instance_not_active');
+            throw new PerfbaseStateException('No profiling instance is active.');
         }
 
         // Set the state to complete
@@ -145,6 +146,7 @@ class TraceInstance
     /**
      * Transforms the collected data into a format that can be sent to the API
      * @return array<string, mixed>
+     * @throws PerfbaseEncodingException
      */
     public function transformData(): array
     {
@@ -175,17 +177,18 @@ class TraceInstance
     /**
      * @param array<mixed> $data
      * @return string
+     * @throws PerfbaseEncodingException
      */
     private function encodeAndCompressData(array $data): string
     {
         $json = json_encode($data);
         if ($json === false) {
-            throw new RuntimeException('Failed to encode data');
+            throw new PerfbaseEncodingException('Failed to encode data');
         }
 
         $compressed = gzencode($json, 6, FORCE_GZIP);
         if ($compressed === false) {
-            throw new RuntimeException('Failed to compress data');
+            throw new PerfbaseEncodingException('Failed to compress data');
         }
         return base64_encode($compressed);
     }
@@ -200,25 +203,7 @@ class TraceInstance
      */
     private function shrinkProfilingData(array $data): array
     {
-        $map = [];
-        $mapIndex = []; // Reverse lookup for faster array_search equivalent
-        $output = [];
-
-        foreach ($data as $k => $v) {
-            $keys = [];
-            $exploded = explode('~', $k);
-
-            foreach ($exploded as $part) {
-                if (!isset($mapIndex[$part])) {
-                    $map[] = $part;
-                    $mapIndex[$part] = count($map) - 1;
-                }
-                $keys[] = $mapIndex[$part];
-            }
-
-            $output[] = [$keys, $v];
-        }
-
-        return [$map, $output];
+        // @phpstan-ignore-next-line
+        return (new Compressor())->execute($data);
     }
 }

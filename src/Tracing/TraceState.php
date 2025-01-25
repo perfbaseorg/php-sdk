@@ -49,14 +49,12 @@ class TraceState
     private function setState(string $requested, array $required): void
     {
         if (!in_array($this->state, $required, true)) {
-            throw new PerfbaseStateException(
-                'bad_state_transition',
-                [
-                    $this->state,
-                    $requested,
-                    implode(', ', $required)
-                ]
-            );
+            throw new PerfbaseStateException(sprintf(
+                'Invalid state transition from "%s" to "%s". Required states: %s.',
+                $this->state,
+                $requested,
+                implode(', ', $required)
+            ));
         }
         $this->state = $requested;
     }

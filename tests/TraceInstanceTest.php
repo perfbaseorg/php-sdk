@@ -3,7 +3,7 @@
 namespace Perfbase\SDK\Tests;
 
 use Perfbase\SDK\Config;
-use Perfbase\SDK\Exception\PerfbaseApiKeyMissingException;
+use Perfbase\SDK\Exception\PerfbaseInvalidConfigException;
 use Perfbase\SDK\Http\ApiClient;
 use Perfbase\SDK\Tracing\Attributes;
 use Perfbase\SDK\Tracing\TraceInstance;
@@ -22,14 +22,14 @@ class TraceInstanceTest extends BaseTest
     public function testThrowsExceptionIfApiKeyIsMissing(): void
     {
         $config = new Config();
-        $this->expectException(PerfbaseApiKeyMissingException::class);
+        $this->expectException(PerfbaseInvalidConfigException::class);
         new TraceInstance($config);
     }
 
     /**
      * @covers ::__construct
      * @return void
-     * @throws PerfbaseApiKeyMissingException
+     * @throws PerfbaseInvalidConfigException
      */
     public function testInitializesWithValidApiKey(): void
     {
@@ -42,7 +42,7 @@ class TraceInstanceTest extends BaseTest
     /**
      * @covers ::__construct
      * @return void
-     * @throws PerfbaseApiKeyMissingException
+     * @throws PerfbaseInvalidConfigException
      * @throws ReflectionException
      */
     public function testHasValidAttributes(): void
@@ -63,7 +63,7 @@ class TraceInstanceTest extends BaseTest
     /**
      * @covers ::__construct
      * @return void
-     * @throws PerfbaseApiKeyMissingException
+     * @throws PerfbaseInvalidConfigException
      * @throws ReflectionException
      */
     public function testTransformsDataCorrectly(): void
@@ -88,8 +88,31 @@ class TraceInstanceTest extends BaseTest
 
         // Expected output
         $expectedPerfOutput = [
-            ['php', 'example', 'function'],
-            [[[0, 1, 2], [null, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]]]
+            "compressor" => "trie",
+            "data" => [
+                "glossary" => [
+                    "php", "example", "function"
+                ],
+                "map" => [
+                    "c" => [
+                        [
+                            "k" => [0],
+                            "c" => [
+                                [
+                                    "k" => [1],
+                                    "c" => [
+                                        [
+                                            "k" => [2],
+                                            "c" => [],
+                                            "v" => [null, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
         ];
 
         // Assert that the transformed data is the same as the original data
@@ -105,7 +128,7 @@ class TraceInstanceTest extends BaseTest
     /**
      * @covers ::__construct
      * @return void
-     * @throws PerfbaseApiKeyMissingException
+     * @throws PerfbaseInvalidConfigException
      * @throws ReflectionException
      */
     public function testEncodesAndCompressesDataCorrectly(): void

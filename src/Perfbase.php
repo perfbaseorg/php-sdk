@@ -2,7 +2,7 @@
 
 namespace Perfbase\SDK;
 
-use Perfbase\SDK\Exception\PerfbaseApiKeyMissingException;
+use Perfbase\SDK\Exception\PerfbaseInvalidConfigException;
 use Perfbase\SDK\Exception\PerfbaseStateException;
 use Perfbase\SDK\Tracing\TraceInstance;
 use Perfbase\SDK\Utils\ExtensionUtils;
@@ -53,7 +53,7 @@ class Perfbase
      * @param Config $config
      * @return TraceInstance
      * @throws PerfbaseStateException
-     * @throws PerfbaseApiKeyMissingException
+     * @throws PerfbaseInvalidConfigException
      */
     public static function createInstance(Config $config): TraceInstance
     {

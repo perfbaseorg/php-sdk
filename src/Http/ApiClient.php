@@ -5,7 +5,7 @@ namespace Perfbase\SDK\Http;
 use GuzzleHttp\Client as GuzzleClient;
 use JsonException;
 use Perfbase\SDK\Config;
-use Perfbase\SDK\Exception\PerfbaseApiKeyMissingException;
+use Perfbase\SDK\Exception\PerfbaseInvalidConfigException;
 use Throwable;
 
 class ApiClient
@@ -29,12 +29,12 @@ class ApiClient
     private GuzzleClient $httpClient;
 
     /**
-     * @throws PerfbaseApiKeyMissingException
+     * @throws PerfbaseInvalidConfigException
      */
     public function __construct(Config $config)
     {
         if (!is_string($config->api_key)) {
-            throw new PerfbaseApiKeyMissingException();
+            throw new PerfbaseInvalidConfigException();
         }
 
         $this->config = $config;

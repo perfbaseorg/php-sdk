@@ -19,6 +19,11 @@
       "email": "ben.poulson@perfbase.com"
     }
   ],
+  "scripts": {
+    "lint": "composer run-script phpstan && composer run-script test",
+    "test": "phpunit",
+    "phpstan": "phpstan analyse --memory-limit=2G"
+  },
   "require": {
     "php": ">=7.4 <8.5",
     "ext-curl": "*",

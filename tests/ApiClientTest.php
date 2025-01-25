@@ -9,7 +9,7 @@ use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Psr7\Response;
 use JsonException;
 use Perfbase\SDK\Config;
-use Perfbase\SDK\Exception\PerfbaseApiKeyMissingException;
+use Perfbase\SDK\Exception\PerfbaseInvalidConfigException;
 use Perfbase\SDK\Http\ApiClient;
 use ReflectionClass;
 
@@ -21,21 +21,21 @@ class ApiClientTest extends BaseTest
 
     /**
      * @return void
-     * @throws PerfbaseApiKeyMissingException
+     * @throws PerfbaseInvalidConfigException
      * @covers ::__construct
      */
     public function testThrowsExceptionIfApiKeyIsMissing(): void
     {
         $config = new Config(); // api_key is null by default
 
-        $this->expectException(PerfbaseApiKeyMissingException::class);
+        $this->expectException(PerfbaseInvalidConfigException::class);
 
         new ApiClient($config);
     }
 
     /**
      * @return void
-     * @throws PerfbaseApiKeyMissingException
+     * @throws PerfbaseInvalidConfigException
      * @covers ::__construct
      */
     public function testInitializesWithValidApiKey(): void
