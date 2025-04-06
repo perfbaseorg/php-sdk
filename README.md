@@ -15,8 +15,8 @@ If you're NOT using a framework - this is the SDK for you!
 Comprehensive documentation for all Perfbase libraries is available at: [https://docs.perfbase.com](https://docs.perfbase.com), including detailed information about data handling policies, security measures, legalities, and specifics on what data is transferred and how it is stored.
 
 ## Requirements
-
 - PHP version `7.4` → `8.4`.
+- Linux or MacOS
 - Composer 
 - `ext-curl` (Note: this is usually enabled by default)
 - `ext-perfbase` PHP extension installed and enabled.
