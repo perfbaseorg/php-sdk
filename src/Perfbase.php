@@ -2,7 +2,6 @@
 
 namespace Perfbase\SDK;
 
-use Perfbase\SDK\Exception\PerfbaseException;
 use Perfbase\SDK\Exception\PerfbaseExtensionException;
 use Perfbase\SDK\Exception\PerfbaseInvalidConfigException;
 use Perfbase\SDK\Exception\PerfbaseInvalidSpanException;
@@ -115,7 +114,6 @@ class Perfbase
      */
     public function startTraceSpan(string $spanName): void
     {
-        $this->ensureIsAvailable();
         $spanName = $this->validateSpanName($spanName);
 
         // Check to see if span is already active
@@ -166,11 +164,9 @@ class Perfbase
      * The data is automatically sent to the Perfbase API for analysis.
      * @param string $spanName The name of the span to stop profiling, null for all.
      * @throws PerfbaseInvalidSpanException
-     * @throws PerfbaseExtensionException
      */
     public function stopTraceSpan(string $spanName): void
     {
-        $this->ensureIsAvailable();
         $spanName = $this->validateSpanName($spanName);
 
         // Check to see if span is active
@@ -196,22 +192,18 @@ class Perfbase
 
     /**
      * Sets the flags for the Perfbase profiler
-     * @throws PerfbaseExtensionException
      */
     public function setFlags(int $flags): void
     {
-        $this->ensureIsAvailable();
         $this->config->flags = $flags;
     }
 
     /**
      * Sends collected profiling data to the API
      * @return void
-     * @throws PerfbaseException
      */
     public function submitTrace(): void
     {
-        $this->ensureIsAvailable();
         $this->apiClient->submitTrace(
             base64_decode(perfbase_get_data())
         );
@@ -219,18 +211,16 @@ class Perfbase
     }
 
     /**
+     * Resets the trace session
      * @return void
-     * @throws PerfbaseExtensionException
      */
     public function reset()
     {
-        $this->ensureIsAvailable();
         perfbase_reset();
     }
 
     /**
      * Cleans up the trace session before destruction
-     * @throws PerfbaseExtensionException
      */
     public function __destruct()
     {
