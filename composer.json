@@ -26,9 +26,8 @@
   },
   "require": {
     "php": ">=7.4 <8.5",
+    "ext-perfbase": "*",
     "ext-curl": "*",
-    "ext-zlib": "*",
-    "ext-json": "*",
     "guzzlehttp/guzzle": "^7.0"
   },
   "require-dev": {

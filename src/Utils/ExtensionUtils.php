@@ -10,8 +10,9 @@ class ExtensionUtils
     private static array $methods = [
         'perfbase_enable',
         'perfbase_disable',
-        'perfbase_disable',
-        'perfbase_get_data'
+        'perfbase_reset',
+        'perfbase_get_data',
+        'perfbase_set_attribute'
     ];
 
     /**

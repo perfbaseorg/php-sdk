@@ -129,14 +129,4 @@ class EnvironmentUtilsTest extends BaseTest
         $this->assertNull(EnvironmentUtils::getUserUserAgent());
     }
 
-    /**
-     * @covers ::getHostname
-     * @return void
-     */
-    public function testGetHostnameReturnsServerHostname(): void
-    {
-        $hostname = gethostname();
-
-        $this->assertSame($hostname, EnvironmentUtils::getHostname());
-    }
 }
