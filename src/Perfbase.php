@@ -205,9 +205,14 @@ class Perfbase
     public function submitTrace(): void
     {
         $this->apiClient->submitTrace(
-            base64_decode(perfbase_get_data())
+            $this->getTraceData()
         );
         $this->reset();
+    }
+
+    public function getTraceData(): string
+    {
+        return base64_decode(perfbase_get_data());
     }
 
     /**
