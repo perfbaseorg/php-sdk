@@ -84,7 +84,7 @@ class Perfbase
      */
     private function ensureIsAvailable(): void
     {
-        if (!$this->isAvailable()) {
+        if (!self::isAvailable()) {
             throw new PerfbaseExtensionException('Perfbase extension is not available.');
         }
     }
@@ -94,7 +94,7 @@ class Perfbase
      * Result is cached to avoid multiple checks.
      * @return bool
      */
-    public function isAvailable(): bool
+    public static function isAvailable(): bool
     {
         if (self::$isAvailable === -1) {
             self::$isAvailable = ExtensionUtils::perfbaseExtensionLoaded() && ExtensionUtils::perfbaseMethodsAvailable() ? 1 : 0;
