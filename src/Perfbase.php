@@ -212,7 +212,7 @@ class Perfbase
 
     public function getTraceData(): string
     {
-        return base64_decode(perfbase_get_data());
+        return perfbase_get_data();
     }
 
     /**
