@@ -3,9 +3,8 @@
 namespace Perfbase\SDK\Http;
 
 use GuzzleHttp\Client as GuzzleClient;
-use JsonException;
 use Perfbase\SDK\Config;
-use Perfbase\SDK\Exception\PerfbaseInvalidConfigException;
+use Perfbase\SDK\Perfbase;
 use Throwable;
 
 class ApiClient
@@ -28,20 +27,13 @@ class ApiClient
      */
     private GuzzleClient $httpClient;
 
-    /**
-     * @throws PerfbaseInvalidConfigException
-     */
     public function __construct(Config $config)
     {
-        if (!is_string($config->api_key)) {
-            throw new PerfbaseInvalidConfigException();
-        }
-
         $this->config = $config;
         $this->defaultHeaders = [
             'Authorization' => 'Bearer ' . $this->config->api_key,
             'Accept' => 'application/json',
-            'User-Agent' => 'Perfbase-PHP-SDK/1.0',
+            'User-Agent' => sprintf('Perfbase-PHP-SDK/%s', Perfbase::VERSION),
             'Content-Type' => 'application/json',
             'Connection' => 'keep-alive',
         ];
@@ -61,19 +53,29 @@ class ApiClient
     }
 
     /**
+     * Submits a trace to the Perfbase API
+     *
+     * @param string $perfData Data to send in the request body
+     * @return void
+     */
+    public function submitTrace(string $perfData): void
+    {
+        $this->submit('/v1/submit', $perfData);
+    }
+
+    /**
      * Sends a POST request to the specified API endpoint
      *
      * @param string $endpoint API endpoint to send the request to
-     * @param array<mixed> $data Data to send in the request body
+     * @param string $perfData Data to send in the request body
      * @return void
-     * @throws JsonException
      */
-    private function submit(string $endpoint, array $data): void
+    private function submit(string $endpoint, string $perfData): void
     {
         // Prepare request options
         $options = [
             'headers' => array_merge($this->defaultHeaders, []),
-            'body' => json_encode($data, JSON_THROW_ON_ERROR),
+            'body' => $perfData,
         ];
 
         try {
@@ -81,19 +83,6 @@ class ApiClient
         } catch (Throwable $e) {
             // throw new PerfbaseException('HTTP Request failed: ' . $e->getMessage());
         }
-    }
-
-    /**
-     * Submits a trace to the Perfbase API
-     *
-     * @param array<mixed> $data Data to send in the request body
-     * @return void
-     *
-     * @throws JsonException When the HTTP request fails or returns an error
-     */
-    public function submitTrace(array $data): void
-    {
-        $this->submit('/v1/submit', $data);
     }
 
 }

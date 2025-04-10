@@ -2,16 +2,9 @@
 
 namespace Perfbase\SDK\Tests;
 
-use GuzzleHttp\Client as GuzzleClient;
-use GuzzleHttp\Handler\MockHandler;
-use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Promise\PromiseInterface;
-use GuzzleHttp\Psr7\Response;
-use JsonException;
 use Perfbase\SDK\Config;
 use Perfbase\SDK\Exception\PerfbaseInvalidConfigException;
 use Perfbase\SDK\Http\ApiClient;
-use ReflectionClass;
 
 /**
  * @coversDefaultClass \Perfbase\SDK\Http\ApiClient
@@ -21,30 +14,25 @@ class ApiClientTest extends BaseTest
 
     /**
      * @return void
-     * @throws PerfbaseInvalidConfigException
      * @covers ::__construct
+     * @throws PerfbaseInvalidConfigException
      */
-    public function testThrowsExceptionIfApiKeyIsMissing(): void
+    public function testInitializesWithValidApiKey(): void
     {
-        $config = new Config(); // api_key is null by default
-
-        $this->expectException(PerfbaseInvalidConfigException::class);
-
-        new ApiClient($config);
+        $config = Config::new('test_api_key', 0, 'http://example.com');
+        $apiClient = new ApiClient($config);
+        $this->assertInstanceOf(ApiClient::class, $apiClient);
     }
 
     /**
      * @return void
-     * @throws PerfbaseInvalidConfigException
      * @covers ::__construct
+     * @throws PerfbaseInvalidConfigException
      */
-    public function testInitializesWithValidApiKey(): void
+    public function testInitializesWithValidNullUrl(): void
     {
-        $config = new Config();
-        $config->api_key = 'test_api_key';
-
+        $config = Config::new('test_api_key', 0, null);
         $apiClient = new ApiClient($config);
-
         $this->assertInstanceOf(ApiClient::class, $apiClient);
     }
 

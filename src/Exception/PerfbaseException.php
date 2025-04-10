@@ -3,7 +3,6 @@
 namespace Perfbase\SDK\Exception;
 
 use Exception;
-use Throwable;
 
 class PerfbaseException extends Exception
 {

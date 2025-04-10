@@ -14,7 +14,14 @@ If you're NOT using a framework - this is the SDK for you!
 ## Documentation
 Comprehensive documentation for all Perfbase libraries is available at: [https://docs.perfbase.com](https://docs.perfbase.com), including detailed information about data handling policies, security measures, legalities, and specifics on what data is transferred and how it is stored.
 
-## Installation
+## Requirements
+- PHP version `7.4` → `8.4`.
+- Linux or MacOS
+- Composer 
+- `ext-curl` (Note: this is usually enabled by default)
+- `ext-perfbase` PHP extension installed and enabled.
+
+## SDK Installation
 
 Install the package via composer:
 
@@ -22,79 +29,46 @@ Install the package via composer:
 composer require perfbase/php-sdk
 ```
 
-## Requirements
+## Install the Perfbase PHP extension.
+The `ext-perfbase` PHP extension is required for the SDK to function properly. 
+To install the module, you must be running Linux or MacOS. The extension is not available for Windows or ZTS at this time.
 
-- PHP version `7.4` → `8.4`.
-- Composer 
-- `ext-curl`, `ext-json`, `ext-zlib` (Note: these are usually enabled by default)
-- The `perfbase` PHP extension installed and enabled.
+You can install it using the following command:
+```bash
+bash -c "$(curl -fsSL https://cdn.perfbase.com/install.sh)"
+```
+This command will download and install the `ext-perfbase` extension for your PHP installation. Make sure to restart your web server or PHP-FPM service after installation.
 
-## Quick Start
-
+## SDK Quick Start
 ```php
 use Perfbase\SDK\Perfbase;
 use Perfbase\SDK\Config;
 
-// Initialize the client with configuration
-$config = new Config('YOUR_API_KEY');
+// Firstly, we need to create a configuration object
+// Set the API key. The API key is required for authentication
+$config = Config::fromArray([
+    'api_key' => 'your_api_key_here',
+]);
 
 // Create a new instance of the Perfbase SDK
 $perfbase = new Perfbase($config);
 
-// Create a new profiling instance
-$instance = $perfbase->createInstance($config);
-$instance->startProfiling();
+// Start a trace span, this will begin collecting performance data
+// The span name is used to identify the trace in the Perfbase dashboard
+// You can use any name you like, and you can run multiple spans at the same time.
+// This is useful for profiling different parts of your application.
+$perfbase->startTraceSpan('test_span');
 
-// Your code here
-// ...
+// !!!! Your code goes here !!!! //
 
-// Stop profiling and send data to Perfbase
-$instance->stopProfiling();
+// Stop the trace span, this will stop collecting performance data
+$perfbase->stopTraceSpan('test_span');
+
+// Now we can submit the trace data to the Perfbase API
+$perfbase->submitTrace();
 
 // Complete!
 ```
-
-## Configuration
-
-You can configure the SDK using direct initialization or an array:
-
-```php
-// Direct initialization
-$config = new Config(
-    api_key: 'YOUR_API_KEY',
-    track_file_operations: true
-    // ...
-);
-
-// Using an array
-$config = Config::fromArray([
-    'api_key' => 'YOUR_API_KEY',
-    'track_pdo' => true,
-    'track_caches' => true
-    // ...
-]);
-```
-
-### Configuration Options
-
-| Option                    | Type    | Default  | Description                                  |
-|---------------------------|---------|----------|----------------------------------------------|
-| `api_key`                 | string  | required | Your Perfbase API key                        |
-| `ignored_functions`       | array   | `[]`     | List of functions to ignore during profiling |
-| `use_coarse_clock`        | boolean | `false`  | Use faster but less accurate timing          |
-| `track_file_compilation`  | boolean | `true`   | Track PHP file compilation times             |
-| `track_memory_allocation` | boolean | `false`  | Track memory allocation/deallocation         |
-| `track_cpu_time`          | boolean | `true`   | Track CPU usage                              |
-| `track_pdo`               | boolean | `true`   | Track PDO database operations                |
-| `track_http`              | boolean | `true`   | Track HTTP requests                          |
-| `track_caches`            | boolean | `true`   | Track caching mechanisms                     |
-| `track_mongodb`           | boolean | `true`   | Track MongoDB operations                     |
-| `track_elasticsearch`     | boolean | `true`   | Track Elasticsearch operations               |
-| `track_queues`            | boolean | `true`   | Track queue operations                       |
-| `track_aws_sdk`           | boolean | `true`   | Track AWS SDK operations                     |
-| `track_file_operations`   | boolean | `true`   | Track file operations                        |
-| `proxy`                   | string  | `null`   | HTTP/HTTPS proxy for Perfbase API calls      |
-| `timeout`                 | int     | `10`     | Timeout seconds for Perfbase API calls       |
 
 ## License
 

@@ -54,12 +54,4 @@ class EnvironmentUtils
         return null;
     }
 
-    /**
-     * Attempts to get the hostname of the server.
-     * @return string|null
-     */
-    public static function getHostname(): ?string
-    {
-        return gethostname() ?: null;
-    }
 }
