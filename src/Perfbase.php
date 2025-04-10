@@ -109,7 +109,6 @@ class Perfbase
      * This method should be called at the point where you want to begin
      * collecting performance data.
      * @param string $spanName The name of the span to start profiling
-     * @throws PerfbaseExtensionException
      * @throws PerfbaseInvalidSpanException
      */
     public function startTraceSpan(string $spanName): void
