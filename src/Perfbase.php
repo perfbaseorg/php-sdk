@@ -161,21 +161,23 @@ class Perfbase
      *
      * Disables the Perfbase profiler and retrieves the collected performance data.
      * The data is automatically sent to the Perfbase API for analysis.
-     * @param string $spanName The name of the span to stop profiling, null for all.
+     * @param string $spanName The name of the span to stop profiling
+     * @return bool Will equal true if the span was successfully stopped, false if it was not active.
      * @throws PerfbaseInvalidSpanException
      */
-    public function stopTraceSpan(string $spanName): void
+    public function stopTraceSpan(string $spanName): bool
     {
         $spanName = $this->validateSpanName($spanName);
 
         // Check to see if span is active
         if (!$this->isSpanActive($spanName)) {
-            trigger_error(sprintf('Perfbase: Attempted to stop span "%s" which is not active. ', $spanName), E_USER_WARNING);
-            return;
+            return false;
         }
 
         // Set the state to complete
         perfbase_disable($spanName);
+
+        return true;
     }
 
     /**
@@ -209,6 +211,10 @@ class Perfbase
         $this->reset();
     }
 
+    /**
+     * Retrieves the trace data collected during the profiling session
+     * @return string
+     */
     public function getTraceData(): string
     {
         return perfbase_get_data();
