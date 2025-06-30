@@ -5,8 +5,9 @@ namespace Perfbase\SDK;
 use Perfbase\SDK\Exception\PerfbaseExtensionException;
 use Perfbase\SDK\Exception\PerfbaseInvalidConfigException;
 use Perfbase\SDK\Exception\PerfbaseInvalidSpanException;
+use Perfbase\SDK\Extension\ExtensionInterface;
+use Perfbase\SDK\Extension\PerfbaseExtension;
 use Perfbase\SDK\Http\ApiClient;
-use Perfbase\SDK\Utils\ExtensionUtils;
 
 /**
  * Main client class for the Perfbase SDK
@@ -30,13 +31,10 @@ class Perfbase
     private const DEFAULT_SPAN_NAME = 'default';
 
     /**
-     * Flag to indicate if the Perfbase extension is available
-     * -1 = not checked yet
-     * 0 = not available
-     * 1 = available
-     * @var int
+     * The extension interface for profiling operations
+     * @var ExtensionInterface
      */
-    private static int $isAvailable = -1;
+    private ExtensionInterface $extension;
 
     /**
      * Manages the connection to the Perfbase API
@@ -58,11 +56,17 @@ class Perfbase
 
     /**
      * Initialises the Perfbase SDK with the provided configuration
+     * @param Config $config
+     * @param ExtensionInterface|null $extension
+     * @param ApiClient|null $apiClient
      * @throws PerfbaseExtensionException
      * @throws PerfbaseInvalidConfigException
      */
-    public function __construct(Config $config)
+    public function __construct(Config $config, ?ExtensionInterface $extension = null, ?ApiClient $apiClient = null)
     {
+        // Use provided extension or create default
+        $this->extension = $extension ?? new PerfbaseExtension();
+        
         // Check if the Perfbase extension is available
         $this->ensureIsAvailable();
 
@@ -72,8 +76,8 @@ class Perfbase
         // Set the configuration
         $this->config = $config;
 
-        // Create the API client
-        $this->apiClient = new ApiClient($config);
+        // Create or use provided API client
+        $this->apiClient = $apiClient ?? new ApiClient($config);
     }
 
     /**
@@ -84,22 +88,9 @@ class Perfbase
      */
     private function ensureIsAvailable(): void
     {
-        if (!self::isAvailable()) {
+        if (!$this->extension->isAvailable()) {
             throw new PerfbaseExtensionException('Perfbase extension is not available.');
         }
-    }
-
-    /**
-     * Check if the extension is loaded and the required methods are available
-     * Result is cached to avoid multiple checks.
-     * @return bool
-     */
-    public static function isAvailable(): bool
-    {
-        if (self::$isAvailable === -1) {
-            self::$isAvailable = ExtensionUtils::perfbaseExtensionLoaded() && ExtensionUtils::perfbaseMethodsAvailable() ? 1 : 0;
-        }
-        return self::$isAvailable === 1;
     }
 
     /**
@@ -123,7 +114,7 @@ class Perfbase
 
         // Set the state to active
         $this->activeSpans[$spanName] = true;
-        perfbase_enable($spanName, $this->config->flags);
+        $this->extension->enable($spanName, $this->config->flags);
     }
 
     /**
@@ -175,7 +166,8 @@ class Perfbase
         }
 
         // Set the state to complete
-        perfbase_disable($spanName);
+        unset($this->activeSpans[$spanName]);
+        $this->extension->disable($spanName);
 
         return true;
     }
@@ -217,7 +209,7 @@ class Perfbase
      */
     public function getTraceData(): string
     {
-        return perfbase_get_data();
+        return $this->extension->getData();
     }
 
     /**
@@ -226,7 +218,8 @@ class Perfbase
      */
     public function reset()
     {
-        perfbase_reset();
+        $this->activeSpans = [];
+        $this->extension->reset();
     }
 
     /**
@@ -235,6 +228,15 @@ class Perfbase
     public function __destruct()
     {
         $this->reset();
+    }
+
+    /**
+     * Check if the extension is available
+     * @return bool
+     */
+    public function isExtensionAvailable(): bool
+    {
+        return $this->extension->isAvailable();
     }
 
 }

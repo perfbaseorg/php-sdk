@@ -1,29 +1,24 @@
 {
   "name": "perfbase/php-sdk",
   "description": "An SDK for sending profiling data to Perfbase",
+  "keywords": [
+    "Perfbase",
+    "php",
+    "profiling"
+  ],
+  "homepage": "https://github.com/perfbaseorg/php-sdk",
+  "support": {
+    "issues": "https://github.com/perfbaseorg/php-sdk/issues",
+    "source": "https://github.com/perfbaseorg/php-sdk"
+  },
   "type": "library",
   "license": "Apache-2.0",
-  "autoload": {
-    "psr-4": {
-      "Perfbase\\SDK\\": "src/"
-    }
-  },
-  "autoload-dev": {
-    "psr-4": {
-      "Perfbase\\SDK\\Tests\\": "tests/"
-    }
-  },
   "authors": [
     {
       "name": "Ben Poulson",
       "email": "ben.poulson@perfbase.com"
     }
   ],
-  "scripts": {
-    "lint": "composer run-script phpstan && composer run-script test",
-    "test": "phpunit",
-    "phpstan": "phpstan analyse --memory-limit=2G"
-  },
   "require": {
     "php": ">=7.4 <8.5",
     "ext-curl": "*",
@@ -33,5 +28,25 @@
     "phpstan/phpstan": "^2.1",
     "mockery/mockery": "^1.6",
     "phpunit/phpunit": "^9"
+  },
+   "autoload": {
+    "psr-4": {
+      "Perfbase\\SDK\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Perfbase\\SDK\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "lint": "composer run-script phpstan && composer run-script test",
+    "test": "phpunit",
+    "phpstan": "phpstan analyse --memory-limit=2G"
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "config": {
+    "sort-packages": true
   }
 }
