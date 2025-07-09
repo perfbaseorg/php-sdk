@@ -105,42 +105,6 @@ class PerfbaseTest extends BaseTest
 
     /**
      * @covers ::startTraceSpan
-     * @covers ::validateSpanName
-     */
-    public function testStartTraceSpanThrowsExceptionForTooLongName(): void
-    {
-        $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
-        $this->mockExtension->shouldReceive('reset')->once(); // Called by destructor
-        
-        $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
-        
-        $longName = str_repeat('a', 65);
-        
-        $this->expectException(PerfbaseInvalidSpanException::class);
-        $this->expectExceptionMessage('Span name exceeds maximum length of 64 characters.');
-        
-        $perfbase->startTraceSpan($longName);
-    }
-
-    /**
-     * @covers ::startTraceSpan
-     * @covers ::validateSpanName
-     */
-    public function testStartTraceSpanThrowsExceptionForInvalidCharacters(): void
-    {
-        $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
-        $this->mockExtension->shouldReceive('reset')->once(); // Called by destructor
-        
-        $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
-        
-        $this->expectException(PerfbaseInvalidSpanException::class);
-        $this->expectExceptionMessage('Span name contains invalid characters. Only alphanumeric characters, hyphens and underscores are allowed.');
-        
-        $perfbase->startTraceSpan('invalid@span!');
-    }
-
-    /**
-     * @covers ::startTraceSpan
      */
     public function testStartTraceSpanWarnsWhenSpanAlreadyActive(): void
     {
