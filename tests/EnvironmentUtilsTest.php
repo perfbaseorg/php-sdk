@@ -9,10 +9,19 @@ use Perfbase\SDK\Utils\EnvironmentUtils;
  */
 class EnvironmentUtilsTest extends BaseTest
 {
+    private array $originalServer;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->originalServer = $_SERVER;
+    }
+
     protected function tearDown(): void
     {
-        // Restore $_SERVER array
-        $_SERVER = [];
+        // Restore original $_SERVER array
+        $_SERVER = $this->originalServer;
+        parent::tearDown();
     }
 
     /**

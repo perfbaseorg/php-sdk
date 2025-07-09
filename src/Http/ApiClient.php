@@ -4,8 +4,9 @@ namespace Perfbase\SDK\Http;
 
 use GuzzleHttp\Client as GuzzleClient;
 use Perfbase\SDK\Config;
+use Perfbase\SDK\Http\HttpClientInterface;
+use Perfbase\SDK\Http\GuzzleHttpClient;
 use Perfbase\SDK\Perfbase;
-use Throwable;
 
 class ApiClient
 {
@@ -23,11 +24,11 @@ class ApiClient
 
     /**
      * HTTP client to send requests.
-     * @var GuzzleClient
+     * @var HttpClientInterface
      */
-    private GuzzleClient $httpClient;
+    private HttpClientInterface $httpClient;
 
-    public function __construct(Config $config)
+    public function __construct(Config $config, ?HttpClientInterface $httpClient = null)
     {
         $this->config = $config;
         $this->defaultHeaders = [
@@ -38,18 +39,24 @@ class ApiClient
             'Connection' => 'keep-alive',
         ];
 
-        /** @var array<string, mixed> $httpClientConfig */
-        $httpClientConfig = [];
-        $httpClientConfig['base_uri'] = $config->api_url;
-        $httpClientConfig['timeout'] = $config->timeout;
+        if ($httpClient !== null) {
+            $this->httpClient = $httpClient;
+        } else {
+            // Create default HTTP client
+            /** @var array<string, mixed> $httpClientConfig */
+            $httpClientConfig = [];
+            $httpClientConfig['base_uri'] = $config->api_url;
+            $httpClientConfig['timeout'] = $config->timeout;
 
-        // Set up proxy if configured
-        if ($config->proxy) {
-            $httpClientConfig['proxy'] = $config->proxy;
+            // Set up proxy if configured
+            if ($config->proxy) {
+                $httpClientConfig['proxy'] = $config->proxy;
+            }
+
+            // Set up the HTTP client
+            $guzzleClient = new GuzzleClient($httpClientConfig);
+            $this->httpClient = new GuzzleHttpClient($guzzleClient);
         }
-
-        // Set up the HTTP client
-        $this->httpClient = new GuzzleClient($httpClientConfig);
     }
 
     /**
@@ -78,11 +85,7 @@ class ApiClient
             'body' => $perfData,
         ];
 
-        try {
-            $this->httpClient->post($endpoint, $options);
-        } catch (Throwable $e) {
-            // throw new PerfbaseException('HTTP Request failed: ' . $e->getMessage());
-        }
+        $this->httpClient->post($endpoint, $options);
     }
 
 }
