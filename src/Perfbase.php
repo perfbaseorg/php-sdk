@@ -134,16 +134,6 @@ class Perfbase
             $spanName = self::DEFAULT_SPAN_NAME;
         }
 
-        // Check if the span name exceeds the maximum length
-        if (strlen($spanName) > 64) {
-            throw new PerfbaseInvalidSpanException('Span name exceeds maximum length of 64 characters.');
-        }
-
-        // Only allow alphanumeric characters, hyphens and underscores
-        if (!preg_match('/^[a-zA-Z0-9-_]+$/', $spanName)) {
-            throw new PerfbaseInvalidSpanException('Span name contains invalid characters. Only alphanumeric characters, hyphens and underscores are allowed.');
-        }
-
         return $spanName;
     }
 
