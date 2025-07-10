@@ -39,7 +39,7 @@ class ExtensionTest extends BaseTest
     }
 
     /**
-     * @covers ::enable
+     * @covers ::startSpan
      */
     public function testEnable(): void
     {
@@ -50,17 +50,17 @@ class ExtensionTest extends BaseTest
         $extension = new PerfbaseExtension();
         
         // This should not throw an exception
-        $extension->enable('test-span', 0);
+        $extension->startSpan('test-span', 0);
         
         // Clean up
-        $extension->disable('test-span');
+        $extension->stopSpan('test-span');
         $extension->reset();
         
         $this->assertTrue(true); // If we get here, no exception was thrown
     }
 
     /**
-     * @covers ::disable
+     * @covers ::stopSpan
      */
     public function testDisable(): void
     {
@@ -71,13 +71,13 @@ class ExtensionTest extends BaseTest
         $extension = new PerfbaseExtension();
         
         // This should not throw an exception
-        $extension->disable('test-span');
+        $extension->stopSpan('test-span');
         
         $this->assertTrue(true); // If we get here, no exception was thrown
     }
 
     /**
-     * @covers ::getData
+     * @covers ::getSpanData
      */
     public function testGetData(): void
     {
@@ -87,7 +87,7 @@ class ExtensionTest extends BaseTest
 
         $extension = new PerfbaseExtension();
         
-        $data = $extension->getData();
+        $data = $extension->getSpanData();
         
         $this->assertIsString($data);
     }

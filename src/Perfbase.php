@@ -49,10 +49,10 @@ class Perfbase
     private Config $config;
 
     /**
-     * The current state of the trace instance
-     * @var array<string, bool>
+     * Currently active span names
+     * @var array<string>
      */
-    private array $activeSpans = [];
+    private array $activeSpanNames = [];
 
     /**
      * Initialises the Perfbase SDK with the provided configuration
@@ -94,70 +94,45 @@ class Perfbase
     }
 
     /**
-     * Starts the profiling session
+     * Starts a profiling span with optional attributes
      *
-     * Enables the Perfbase profiler if the extension is installed.
-     * This method should be called at the point where you want to begin
-     * collecting performance data.
      * @param string $spanName The name of the span to start profiling
+     * @param array<string, string> $attributes Initial attributes for the span
      * @throws PerfbaseInvalidSpanException
      */
-    public function startTraceSpan(string $spanName): void
+    public function startTraceSpan(string $spanName, array $attributes = []): void
     {
-        $spanName = $this->validateSpanName($spanName);
+        $spanName = trim($spanName) ?: self::DEFAULT_SPAN_NAME;
 
         // Check to see if span is already active
-        if (isset($this->activeSpans[$spanName])) {
+        if (in_array($spanName, $this->activeSpanNames)) {
             trigger_error(sprintf('Perfbase: Attempted to start span "%s" which is already active. ', $spanName), E_USER_WARNING);
             return;
         }
 
         // Set the state to active
-        $this->activeSpans[$spanName] = true;
-        $this->extension->enable($spanName, $this->config->flags);
+        $this->activeSpanNames[] = $spanName;
+        $this->extension->startSpan($spanName, $this->config->flags, $attributes);
     }
 
     /**
-     * Validates the span name to ensure it meets the required format
+     * Stops the profiling session
      *
-     * @param string $spanName
-     * @return string
-     * @throws PerfbaseInvalidSpanException
-     */
-    private function validateSpanName(string $spanName): string
-    {
-        // Remove any leading or trailing whitespace
-        $spanName = trim($spanName);
-
-        // Check if the span name is empty, if so, use the default span name
-        if (empty($spanName)) {
-            $spanName = self::DEFAULT_SPAN_NAME;
-        }
-
-        return $spanName;
-    }
-
-    /**
-     * Stops the profiling session and sends collected data
-     *
-     * Disables the Perfbase profiler and retrieves the collected performance data.
-     * The data is automatically sent to the Perfbase API for analysis.
      * @param string $spanName The name of the span to stop profiling
      * @return bool Will equal true if the span was successfully stopped, false if it was not active.
-     * @throws PerfbaseInvalidSpanException
      */
     public function stopTraceSpan(string $spanName): bool
     {
-        $spanName = $this->validateSpanName($spanName);
+        $spanName = trim($spanName) ?: self::DEFAULT_SPAN_NAME;
 
         // Check to see if span is active
         if (!$this->isSpanActive($spanName)) {
             return false;
         }
 
-        // Set the state to complete
-        unset($this->activeSpans[$spanName]);
-        $this->extension->disable($spanName);
+        // Remove from active spans
+        $this->activeSpanNames = array_values(array_filter($this->activeSpanNames, fn($name) => $name !== $spanName));
+        $this->extension->stopSpan($spanName);
 
         return true;
     }
@@ -170,7 +145,7 @@ class Perfbase
      */
     private function isSpanActive(string $spanName): bool
     {
-        return isset($this->activeSpans[$spanName]);
+        return in_array($spanName, $this->activeSpanNames);
     }
 
     /**
@@ -195,11 +170,12 @@ class Perfbase
 
     /**
      * Retrieves the trace data collected during the profiling session
+     * @param string $spanName Optional span name to get data for specific span
      * @return string
      */
-    public function getTraceData(): string
+    public function getTraceData(string $spanName = ''): string
     {
-        return $this->extension->getData();
+        return $this->extension->getSpanData($spanName);
     }
 
     /**
@@ -208,7 +184,7 @@ class Perfbase
      */
     public function reset()
     {
-        $this->activeSpans = [];
+        $this->activeSpanNames = [];
         $this->extension->reset();
     }
 
@@ -227,6 +203,32 @@ class Perfbase
     public function isExtensionAvailable(): bool
     {
         return $this->extension->isAvailable();
+    }
+
+    /**
+     * Static method to check if Perfbase is available
+     * This is for backward compatibility with older versions
+     * @return bool
+     */
+    public static function isAvailable(): bool
+    {
+        try {
+            $extension = new PerfbaseExtension();
+            return $extension->isAvailable();
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Sets an attribute for the current trace
+     * @param string $key
+     * @param string $value
+     * @return void
+     */
+    public function setAttribute(string $key, string $value): void
+    {
+        $this->extension->setAttribute($key, $value);
     }
 
 }
