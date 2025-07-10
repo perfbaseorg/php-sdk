@@ -50,9 +50,9 @@ class PerfbaseIntegrationTest extends BaseTest
     {
         // Setup extension expectations
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
-        $this->mockExtension->shouldReceive('enable')->once()->with('integration-span', $this->config->flags);
-        $this->mockExtension->shouldReceive('disable')->once()->with('integration-span');
-        $this->mockExtension->shouldReceive('getData')->twice()->andReturn('integration-trace-data'); // Called by getTraceData and submitTrace
+        $this->mockExtension->shouldReceive('startSpan')->once()->with('integration-span', $this->config->flags, []);
+        $this->mockExtension->shouldReceive('stopSpan')->once()->with('integration-span');
+        $this->mockExtension->shouldReceive('getSpanData')->twice()->andReturn('integration-trace-data'); // Called by getTraceData and submitTrace
         $this->mockExtension->shouldReceive('reset')->twice(); // Called by submitTrace and destructor
         
         // Setup API client expectations
@@ -86,15 +86,15 @@ class PerfbaseIntegrationTest extends BaseTest
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
         
         // First span
-        $this->mockExtension->shouldReceive('enable')->once()->with('span-1', $this->config->flags);
-        $this->mockExtension->shouldReceive('disable')->once()->with('span-1');
+        $this->mockExtension->shouldReceive('startSpan')->once()->with('span-1', $this->config->flags, []);
+        $this->mockExtension->shouldReceive('stopSpan')->once()->with('span-1');
         
         // Second span
-        $this->mockExtension->shouldReceive('enable')->once()->with('span-2', $this->config->flags);
-        $this->mockExtension->shouldReceive('disable')->once()->with('span-2');
+        $this->mockExtension->shouldReceive('startSpan')->once()->with('span-2', $this->config->flags, []);
+        $this->mockExtension->shouldReceive('stopSpan')->once()->with('span-2');
         
         // Data retrieval and submission
-        $this->mockExtension->shouldReceive('getData')->once()->andReturn('multi-span-data');
+        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn('multi-span-data');
         $this->mockExtension->shouldReceive('reset')->twice(); // Called by submitTrace and destructor
         $this->mockApiClient->shouldReceive('submitTrace')->once()->with('multi-span-data');
         
@@ -124,14 +124,14 @@ class PerfbaseIntegrationTest extends BaseTest
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
         
         // Initial span with default flags
-        $this->mockExtension->shouldReceive('enable')->once()->with('config-span', $this->config->flags);
+        $this->mockExtension->shouldReceive('startSpan')->once()->with('config-span', $this->config->flags, []);
         
         // After flag change
         $newFlags = 2048;
-        $this->mockExtension->shouldReceive('enable')->once()->with('modified-span', $newFlags);
-        $this->mockExtension->shouldReceive('disable')->once()->with('config-span');
-        $this->mockExtension->shouldReceive('disable')->once()->with('modified-span');
-        $this->mockExtension->shouldReceive('getData')->once()->andReturn('config-change-data');
+        $this->mockExtension->shouldReceive('startSpan')->once()->with('modified-span', $newFlags, []);
+        $this->mockExtension->shouldReceive('stopSpan')->once()->with('config-span');
+        $this->mockExtension->shouldReceive('stopSpan')->once()->with('modified-span');
+        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn('config-change-data');
         $this->mockExtension->shouldReceive('reset')->twice(); // Called by submitTrace and destructor
         $this->mockApiClient->shouldReceive('submitTrace')->once()->with('config-change-data');
         
@@ -163,7 +163,7 @@ class PerfbaseIntegrationTest extends BaseTest
     public function testErrorHandlingInWorkflow(): void
     {
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
-        $this->mockExtension->shouldReceive('enable')->once()->with('error-span', $this->config->flags);
+        $this->mockExtension->shouldReceive('startSpan')->once()->with('error-span', $this->config->flags, []);
         $this->mockExtension->shouldReceive('reset')->once(); // Called by destructor
         
         $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
@@ -176,7 +176,7 @@ class PerfbaseIntegrationTest extends BaseTest
         $this->assertFalse($result);
         
         // Properly stop the actual span
-        $this->mockExtension->shouldReceive('disable')->once()->with('error-span');
+        $this->mockExtension->shouldReceive('stopSpan')->once()->with('error-span');
         $result = $perfbase->stopTraceSpan('error-span');
         $this->assertTrue($result);
     }
@@ -211,9 +211,9 @@ class PerfbaseIntegrationTest extends BaseTest
     public function testFullStackIntegration(): void
     {
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
-        $this->mockExtension->shouldReceive('enable')->once()->with('full-stack', $this->config->flags);
-        $this->mockExtension->shouldReceive('disable')->once()->with('full-stack');
-        $this->mockExtension->shouldReceive('getData')->once()->andReturn('full-stack-data');
+        $this->mockExtension->shouldReceive('startSpan')->once()->with('full-stack', $this->config->flags, []);
+        $this->mockExtension->shouldReceive('stopSpan')->once()->with('full-stack');
+        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn('full-stack-data');
         $this->mockExtension->shouldReceive('reset')->twice(); // Called by submitTrace and destructor
         
         $this->mockHttpClient->shouldReceive('post')
@@ -243,7 +243,7 @@ class PerfbaseIntegrationTest extends BaseTest
     public function testCleanupBehavior(): void
     {
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
-        $this->mockExtension->shouldReceive('enable')->once()->with('cleanup-span', $this->config->flags);
+        $this->mockExtension->shouldReceive('startSpan')->once()->with('cleanup-span', $this->config->flags, []);
         $this->mockExtension->shouldReceive('reset')->twice(); // Once manual, once destructor
         
         $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
@@ -254,8 +254,8 @@ class PerfbaseIntegrationTest extends BaseTest
         $perfbase->reset();
         
         // Verify active spans are cleared
-        $activeSpans = $this->getPrivateFieldValue($perfbase, 'activeSpans');
-        $this->assertEmpty($activeSpans);
+        $activeSpanNames = $this->getPrivateFieldValue($perfbase, 'activeSpanNames');
+        $this->assertEmpty($activeSpanNames);
         
         // Destructor should also call reset (verified by mock expectation)
         unset($perfbase);
