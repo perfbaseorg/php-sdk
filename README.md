@@ -97,7 +97,7 @@ registerUser($userData);
 $perfbase->stopTraceSpan('user_registration');
 
 // Submit the trace data to Perfbase
-$perfbase->submitTrace();
+$result = $perfbase->submitTrace();
 ```
 
 ### Advanced Usage with Attributes
@@ -144,7 +144,7 @@ try {
 }
 
 // Submit trace data
-$perfbase->submitTrace();
+$result = $perfbase->submitTrace();
 ```
 
 ### Multiple Concurrent Spans
@@ -169,7 +169,7 @@ accessCache();
 $perfbase->stopTraceSpan('cache_operations');
 
 // Submit all trace data
-$perfbase->submitTrace();
+$result = $perfbase->submitTrace();
 ```
 
 ## Configuration Options
@@ -265,11 +265,23 @@ Add a custom attribute to the current trace.
 $perfbase->setAttribute('cache_hit_ratio', '0.85');
 ```
 
-#### `submitTrace(): void`
-Submit collected profiling data to Perfbase and reset the session.
+#### `submitTrace(): SubmitResult`
+Submit collected profiling data to Perfbase. Resets the session on success; preserves trace state on failure so callers can decide whether to retry or discard.
+
+The returned `SubmitResult` provides:
+- `isSuccess(): bool` — delivery confirmed
+- `isRetryable(): bool` — transient failure (network error, 429, 5xx)
+- `isPermanentFailure(): bool` — non-retryable (401, 403, 400, etc.)
+- `getStatusCode(): ?int` — HTTP status code if a response was received
+- `getMessage(): string` — human-readable description
 
 ```php
-$perfbase->submitTrace();
+$result = $perfbase->submitTrace();
+
+if (!$result->isSuccess()) {
+    // Handle failure — trace state is preserved for retry
+    error_log("Trace submission failed: " . $result->getMessage());
+}
 ```
 
 #### `getTraceData(string $spanName = ''): string`
@@ -326,6 +338,15 @@ try {
     // Extension not available - handle gracefully
     error_log("Perfbase extension not available: " . $e->getMessage());
     // Your application continues normally
+}
+
+// Submission failures are returned as SubmitResult, not thrown
+$result = $perfbase->submitTrace();
+if ($result->isRetryable()) {
+    // Transient failure — safe to retry later
+} elseif ($result->isPermanentFailure()) {
+    // Non-retryable — check API key, payload, etc.
+    error_log("Permanent submission failure: " . $result->getMessage());
 }
 ```
 

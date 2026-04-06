@@ -10,6 +10,7 @@ use Perfbase\SDK\Exception\PerfbaseInvalidSpanException;
 use Perfbase\SDK\Extension\ExtensionInterface;
 use Perfbase\SDK\Http\ApiClient;
 use Perfbase\SDK\Perfbase;
+use Perfbase\SDK\SubmitResult;
 
 /**
  * @coversDefaultClass \Perfbase\SDK\Perfbase
@@ -216,18 +217,44 @@ class PerfbaseTest extends BaseTest
      * @covers ::submitTrace
      * @covers ::reset
      */
-    public function testSubmitTrace(): void
+    public function testSubmitTraceResetsOnSuccess(): void
     {
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
         $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn('trace-data');
         $this->mockExtension->shouldReceive('reset')->twice(); // Called by submitTrace and destructor
-        $this->mockApiClient->shouldReceive('submitTrace')->once()->with('trace-data');
+        $this->mockApiClient->shouldReceive('submitTrace')
+            ->once()
+            ->with('trace-data')
+            ->andReturn(SubmitResult::success(202));
 
         $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
+        $result = $perfbase->submitTrace();
 
-        $perfbase->submitTrace();
+        $this->assertTrue($result->isSuccess());
+    }
 
-        $this->assertTrue(true); // Verify submitTrace completed successfully
+    /**
+     * @covers ::submitTrace
+     */
+    public function testSubmitTraceDoesNotResetOnFailure(): void
+    {
+        $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
+        $this->mockExtension->shouldReceive('startSpan')->once();
+        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn('trace-data');
+        $this->mockExtension->shouldReceive('reset')->once(); // Only destructor, NOT submitTrace
+        $this->mockApiClient->shouldReceive('submitTrace')
+            ->once()
+            ->andReturn(SubmitResult::retryableFailure(503, 'Service Unavailable'));
+
+        $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
+        $perfbase->startTraceSpan('test-span');
+        $result = $perfbase->submitTrace();
+
+        $this->assertTrue($result->isRetryable());
+
+        // Verify span state is preserved
+        $activeSpanNames = $this->getPrivateFieldValue($perfbase, 'activeSpanNames');
+        $this->assertContains('test-span', $activeSpanNames);
     }
 
     /**
