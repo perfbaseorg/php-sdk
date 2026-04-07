@@ -401,10 +401,13 @@ class PerfbaseTest extends BaseTest
      */
     public function testIsAvailableStaticReturnsTrueWhenExtensionLoaded(): void
     {
-        // isAvailable() creates a new PerfbaseExtension internally.
-        // Without the real extension, it returns false.
         $result = Perfbase::isAvailable();
-        $this->assertFalse($result); // Extension not loaded in test env
+
+        if (\extension_loaded('perfbase')) {
+            $this->assertTrue($result);
+        } else {
+            $this->assertFalse($result);
+        }
     }
 
     /**
