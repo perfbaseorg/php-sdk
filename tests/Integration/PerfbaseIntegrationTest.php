@@ -60,7 +60,9 @@ class PerfbaseIntegrationTest extends BaseTest
 
         $this->mockApiClient->shouldReceive('submitTrace')
             ->once()
-            ->with(Mockery::on(fn(string $p) => str_contains($p, '"v":1')))
+            ->with(Mockery::on(function (string $p): bool {
+                return strpos($p, '"v":1') !== false;
+            }))
             ->andReturn(SubmitResult::success(202));
 
         $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
