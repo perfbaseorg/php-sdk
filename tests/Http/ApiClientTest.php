@@ -8,6 +8,7 @@ use Perfbase\SDK\Config;
 use Perfbase\SDK\Exception\PerfbaseInvalidConfigException;
 use Perfbase\SDK\Http\ApiClient;
 use Perfbase\SDK\Http\HttpClientInterface;
+use Perfbase\SDK\SubmitResult;
 use Perfbase\SDK\Tests\BaseTest;
 
 /**
@@ -21,7 +22,7 @@ class ApiClientTest extends BaseTest
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->mockHttpClient = Mockery::mock(HttpClientInterface::class);
         $this->config = Config::fromArray([
             'api_key' => 'test-api-key',
@@ -42,7 +43,6 @@ class ApiClientTest extends BaseTest
     public function testConstructorWithMockedHttpClient(): void
     {
         $apiClient = new ApiClient($this->config, $this->mockHttpClient);
-        
         $this->assertInstanceOf(ApiClient::class, $apiClient);
     }
 
@@ -53,7 +53,6 @@ class ApiClientTest extends BaseTest
     public function testConstructorWithoutHttpClientCreatesDefault(): void
     {
         $apiClient = new ApiClient($this->config);
-        
         $this->assertInstanceOf(ApiClient::class, $apiClient);
     }
 
@@ -63,9 +62,9 @@ class ApiClientTest extends BaseTest
     public function testConstructorSetsCorrectHeaders(): void
     {
         $apiClient = new ApiClient($this->config, $this->mockHttpClient);
-        
+
         $headers = $this->getPrivateFieldValue($apiClient, 'defaultHeaders');
-        
+
         $this->assertEquals('Bearer test-api-key', $headers['Authorization']);
         $this->assertEquals('application/json', $headers['Accept']);
         $this->assertEquals('application/json', $headers['Content-Type']);
@@ -77,32 +76,32 @@ class ApiClientTest extends BaseTest
      * @covers ::submitTrace
      * @covers ::submit
      */
-    public function testSubmitTrace(): void
+    public function testSubmitTraceReturnsResult(): void
     {
         $testData = 'test-trace-data';
-        
+        $expectedResult = SubmitResult::success(202);
+
         $this->mockHttpClient->shouldReceive('post')
             ->once()
             ->with('/v1/submit', Mockery::on(function ($options) use ($testData) {
                 return isset($options['body']) && $options['body'] === $testData
                     && isset($options['headers']) && is_array($options['headers']);
-            }));
-        
+            }))
+            ->andReturn($expectedResult);
+
         $apiClient = new ApiClient($this->config, $this->mockHttpClient);
-        
-        $apiClient->submitTrace($testData);
-        
-        $this->assertTrue(true); // Verify no exception was thrown
+        $result = $apiClient->submitTrace($testData);
+
+        $this->assertTrue($result->isSuccess());
+        $this->assertSame(202, $result->getStatusCode());
     }
 
     /**
      * @covers ::submitTrace
      * @covers ::submit
      */
-    public function testSubmitTraceWithCorrectHeaders(): void
+    public function testSubmitTracePassesCorrectHeaders(): void
     {
-        $testData = 'test-trace-data';
-        
         $this->mockHttpClient->shouldReceive('post')
             ->once()
             ->with('/v1/submit', Mockery::on(function ($options) {
@@ -112,13 +111,13 @@ class ApiClientTest extends BaseTest
                     && $headers['Content-Type'] === 'application/json'
                     && $headers['Connection'] === 'keep-alive'
                     && isset($headers['User-Agent']);
-            }));
-        
+            }))
+            ->andReturn(SubmitResult::success());
+
         $apiClient = new ApiClient($this->config, $this->mockHttpClient);
-        
-        $apiClient->submitTrace($testData);
-        
-        $this->assertTrue(true); // Verify no exception was thrown
+        $result = $apiClient->submitTrace('test-data');
+
+        $this->assertTrue($result->isSuccess());
     }
 
     /**
@@ -131,13 +130,31 @@ class ApiClientTest extends BaseTest
             ->once()
             ->with('/v1/submit', Mockery::on(function ($options) {
                 return $options['body'] === '';
-            }));
-        
+            }))
+            ->andReturn(SubmitResult::success());
+
         $apiClient = new ApiClient($this->config, $this->mockHttpClient);
-        
-        $apiClient->submitTrace('');
-        
-        $this->assertTrue(true); // Verify no exception was thrown
+        $result = $apiClient->submitTrace('');
+
+        $this->assertTrue($result->isSuccess());
+    }
+
+    /**
+     * @covers ::submitTrace
+     */
+    public function testSubmitTracePropagateshFailureResult(): void
+    {
+        $failureResult = SubmitResult::retryableFailure(503, 'Service Unavailable');
+
+        $this->mockHttpClient->shouldReceive('post')
+            ->once()
+            ->andReturn($failureResult);
+
+        $apiClient = new ApiClient($this->config, $this->mockHttpClient);
+        $result = $apiClient->submitTrace('test-data');
+
+        $this->assertTrue($result->isRetryable());
+        $this->assertSame(503, $result->getStatusCode());
     }
 
     /**
@@ -150,10 +167,8 @@ class ApiClientTest extends BaseTest
             'api_url' => 'https://test.example.com',
             'proxy' => 'http://proxy.example.com:8080'
         ]);
-        
-        // When not providing a mock HTTP client, it should create a real one with proxy config
+
         $apiClient = new ApiClient($configWithProxy);
-        
         $this->assertInstanceOf(ApiClient::class, $apiClient);
     }
 
@@ -167,28 +182,8 @@ class ApiClientTest extends BaseTest
             'api_url' => 'https://test.example.com',
             'timeout' => 30
         ]);
-        
-        $apiClient = new ApiClient($configWithTimeout);
-        
-        $this->assertInstanceOf(ApiClient::class, $apiClient);
-    }
 
-    /**
-     * Test that HTTP client exceptions are handled gracefully
-     * @covers ::submit
-     */
-    public function testSubmitHandlesHttpClientExceptions(): void
-    {
-        $this->mockHttpClient->shouldReceive('post')
-            ->once()
-            ->andThrow(new \Exception('HTTP error'));
-        
-        $apiClient = new ApiClient($this->config, $this->mockHttpClient);
-        
-        // Should throw exception since we removed silent failure handling
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('HTTP error');
-        
-        $apiClient->submitTrace('test-data');
+        $apiClient = new ApiClient($configWithTimeout);
+        $this->assertInstanceOf(ApiClient::class, $apiClient);
     }
 }

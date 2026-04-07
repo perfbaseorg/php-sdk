@@ -8,6 +8,7 @@ use Perfbase\SDK\Exception\PerfbaseInvalidSpanException;
 use Perfbase\SDK\Extension\ExtensionInterface;
 use Perfbase\SDK\Extension\PerfbaseExtension;
 use Perfbase\SDK\Http\ApiClient;
+use Perfbase\SDK\SubmitResult;
 
 /**
  * Main client class for the Perfbase SDK
@@ -157,15 +158,24 @@ class Perfbase
     }
 
     /**
-     * Sends collected profiling data to the API
-     * @return void
+     * Sends collected profiling data to the API.
+     *
+     * Resets trace state on success. On failure, trace state is preserved
+     * so the caller can decide whether to retry or discard.
+     *
+     * @return SubmitResult
      */
-    public function submitTrace(): void
+    public function submitTrace(): SubmitResult
     {
-        $this->apiClient->submitTrace(
-            $this->getTraceData()
-        );
-        $this->reset();
+        $payload = TracePayloadFactory::build($this->getTraceData());
+
+        $result = $this->apiClient->submitTrace($payload);
+
+        if ($result->isSuccess()) {
+            $this->reset();
+        }
+
+        return $result;
     }
 
     /**

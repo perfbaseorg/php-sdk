@@ -3,9 +3,14 @@
 namespace Perfbase\SDK\Tests\Http;
 
 use GuzzleHttp\Client as GuzzleClient;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Psr7\Response;
 use Mockery;
 use Mockery\MockInterface;
 use Perfbase\SDK\Http\GuzzleHttpClient;
+use Perfbase\SDK\SubmitResult;
 use Perfbase\SDK\Tests\BaseTest;
 
 /**
@@ -33,86 +38,186 @@ class GuzzleHttpClientTest extends BaseTest
     public function testConstructor(): void
     {
         $httpClient = new GuzzleHttpClient($this->mockGuzzleClient);
-        
         $this->assertInstanceOf(GuzzleHttpClient::class, $httpClient);
     }
 
     /**
      * @covers ::post
      */
-    public function testPostSuccess(): void
+    public function testPostReturnsSuccessOn2xx(): void
     {
-        $uri = '/test/endpoint';
-        $options = ['headers' => ['Content-Type' => 'application/json']];
-        
         $this->mockGuzzleClient->shouldReceive('post')
             ->once()
-            ->with($uri, $options);
-        
+            ->andReturn(new Response(202));
+
         $httpClient = new GuzzleHttpClient($this->mockGuzzleClient);
-        
-        $httpClient->post($uri, $options);
-        
-        $this->assertTrue(true); // Verify no exception was thrown
+        $result = $httpClient->post('/test/endpoint', ['body' => 'data']);
+
+        $this->assertInstanceOf(SubmitResult::class, $result);
+        $this->assertTrue($result->isSuccess());
+        $this->assertSame(202, $result->getStatusCode());
     }
 
     /**
      * @covers ::post
      */
-    public function testPostWithEmptyOptions(): void
+    public function testPostReturnsRetryableFailureOnConnectionError(): void
     {
-        $uri = '/test/endpoint';
-        
+        $request = new Request('POST', '/test');
         $this->mockGuzzleClient->shouldReceive('post')
             ->once()
-            ->with($uri, []);
-        
+            ->andThrow(new ConnectException('Connection refused', $request));
+
         $httpClient = new GuzzleHttpClient($this->mockGuzzleClient);
-        
-        $httpClient->post($uri);
-        
-        $this->assertTrue(true); // Verify no exception was thrown
+        $result = $httpClient->post('/test/endpoint');
+
+        $this->assertTrue($result->isRetryable());
+        $this->assertNull($result->getStatusCode());
+        $this->assertStringContainsString('Connection refused', $result->getMessage());
+    }
+
+    /**
+     * @covers ::post
+     * @covers ::classifyHttpStatus
+     */
+    public function testPostReturnsRetryableFailureOn5xx(): void
+    {
+        $request = new Request('POST', '/test');
+        $response = new Response(503);
+        $this->mockGuzzleClient->shouldReceive('post')
+            ->once()
+            ->andThrow(new RequestException('Service Unavailable', $request, $response));
+
+        $httpClient = new GuzzleHttpClient($this->mockGuzzleClient);
+        $result = $httpClient->post('/test/endpoint');
+
+        $this->assertTrue($result->isRetryable());
+        $this->assertSame(503, $result->getStatusCode());
+    }
+
+    /**
+     * @covers ::post
+     * @covers ::classifyHttpStatus
+     */
+    public function testPostReturnsRetryableFailureOn429(): void
+    {
+        $request = new Request('POST', '/test');
+        $response = new Response(429);
+        $this->mockGuzzleClient->shouldReceive('post')
+            ->once()
+            ->andThrow(new RequestException('Too Many Requests', $request, $response));
+
+        $httpClient = new GuzzleHttpClient($this->mockGuzzleClient);
+        $result = $httpClient->post('/test/endpoint');
+
+        $this->assertTrue($result->isRetryable());
+        $this->assertSame(429, $result->getStatusCode());
+    }
+
+    /**
+     * @covers ::post
+     * @covers ::classifyHttpStatus
+     */
+    public function testPostReturnsPermanentFailureOn4xx(): void
+    {
+        $request = new Request('POST', '/test');
+        $response = new Response(401);
+        $this->mockGuzzleClient->shouldReceive('post')
+            ->once()
+            ->andThrow(new RequestException('Unauthorized', $request, $response));
+
+        $httpClient = new GuzzleHttpClient($this->mockGuzzleClient);
+        $result = $httpClient->post('/test/endpoint');
+
+        $this->assertTrue($result->isPermanentFailure());
+        $this->assertSame(401, $result->getStatusCode());
     }
 
     /**
      * @covers ::post
      */
-    public function testPostSilentlyHandlesExceptions(): void
+    public function testPostReturnsRetryableFailureOnUnexpectedException(): void
     {
-        $uri = '/test/endpoint';
-        $options = ['body' => 'test data'];
-        
         $this->mockGuzzleClient->shouldReceive('post')
             ->once()
-            ->with($uri, $options)
-            ->andThrow(new \Exception('Network error'));
-        
+            ->andThrow(new \RuntimeException('Unexpected error'));
+
         $httpClient = new GuzzleHttpClient($this->mockGuzzleClient);
-        
-        // Should not throw exception (silent failure as per design)
-        $httpClient->post($uri, $options);
-        
-        $this->assertTrue(true); // If we get here, exception was handled silently
+        $result = $httpClient->post('/test/endpoint');
+
+        $this->assertTrue($result->isRetryable());
+        $this->assertStringContainsString('Unexpected error', $result->getMessage());
+    }
+
+    /**
+     * @covers ::post
+     * @covers ::classifyHttpStatus
+     */
+    public function testPostReturnsRetryableOnRequestExceptionWithNoResponse(): void
+    {
+        $request = new Request('POST', '/test');
+        $this->mockGuzzleClient->shouldReceive('post')
+            ->once()
+            ->andThrow(new RequestException('No response received', $request));
+
+        $httpClient = new GuzzleHttpClient($this->mockGuzzleClient);
+        $result = $httpClient->post('/test/endpoint');
+
+        $this->assertTrue($result->isRetryable());
+        $this->assertNull($result->getStatusCode());
     }
 
     /**
      * @covers ::post
      */
-    public function testPostSilentlyHandlesGuzzleExceptions(): void
+    public function testPostReturnsSuccessOn200(): void
     {
-        $uri = '/test/endpoint';
-        
         $this->mockGuzzleClient->shouldReceive('post')
             ->once()
-            ->with($uri, [])
-            ->andThrow(new \GuzzleHttp\Exception\RequestException('Request failed', 
-                Mockery::mock(\Psr\Http\Message\RequestInterface::class)));
-        
+            ->andReturn(new Response(200));
+
         $httpClient = new GuzzleHttpClient($this->mockGuzzleClient);
-        
-        // Should not throw exception
-        $httpClient->post($uri);
-        
-        $this->assertTrue(true);
+        $result = $httpClient->post('/test/endpoint');
+
+        $this->assertTrue($result->isSuccess());
+        $this->assertSame(200, $result->getStatusCode());
+    }
+
+    /**
+     * @covers ::post
+     * @covers ::classifyHttpStatus
+     */
+    public function testPostReturnsPermanentFailureOn400(): void
+    {
+        $request = new Request('POST', '/test');
+        $response = new Response(400);
+        $this->mockGuzzleClient->shouldReceive('post')
+            ->once()
+            ->andThrow(new RequestException('Bad Request', $request, $response));
+
+        $httpClient = new GuzzleHttpClient($this->mockGuzzleClient);
+        $result = $httpClient->post('/test/endpoint');
+
+        $this->assertTrue($result->isPermanentFailure());
+        $this->assertSame(400, $result->getStatusCode());
+    }
+
+    /**
+     * @covers ::post
+     * @covers ::classifyHttpStatus
+     */
+    public function testPostReturnsRetryableOn500(): void
+    {
+        $request = new Request('POST', '/test');
+        $response = new Response(500);
+        $this->mockGuzzleClient->shouldReceive('post')
+            ->once()
+            ->andThrow(new RequestException('Internal Server Error', $request, $response));
+
+        $httpClient = new GuzzleHttpClient($this->mockGuzzleClient);
+        $result = $httpClient->post('/test/endpoint');
+
+        $this->assertTrue($result->isRetryable());
+        $this->assertSame(500, $result->getStatusCode());
     }
 }

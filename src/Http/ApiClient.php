@@ -4,9 +4,8 @@ namespace Perfbase\SDK\Http;
 
 use GuzzleHttp\Client as GuzzleClient;
 use Perfbase\SDK\Config;
-use Perfbase\SDK\Http\HttpClientInterface;
-use Perfbase\SDK\Http\GuzzleHttpClient;
 use Perfbase\SDK\Perfbase;
+use Perfbase\SDK\SubmitResult;
 
 class ApiClient
 {
@@ -42,18 +41,15 @@ class ApiClient
         if ($httpClient !== null) {
             $this->httpClient = $httpClient;
         } else {
-            // Create default HTTP client
             /** @var array<string, mixed> $httpClientConfig */
             $httpClientConfig = [];
             $httpClientConfig['base_uri'] = $config->api_url;
             $httpClientConfig['timeout'] = $config->timeout;
 
-            // Set up proxy if configured
             if ($config->proxy) {
                 $httpClientConfig['proxy'] = $config->proxy;
             }
 
-            // Set up the HTTP client
             $guzzleClient = new GuzzleClient($httpClientConfig);
             $this->httpClient = new GuzzleHttpClient($guzzleClient);
         }
@@ -63,11 +59,11 @@ class ApiClient
      * Submits a trace to the Perfbase API
      *
      * @param string $perfData Data to send in the request body
-     * @return void
+     * @return SubmitResult
      */
-    public function submitTrace(string $perfData): void
+    public function submitTrace(string $perfData): SubmitResult
     {
-        $this->submit('/v1/submit', $perfData);
+        return $this->submit('/v1/submit', $perfData);
     }
 
     /**
@@ -75,17 +71,15 @@ class ApiClient
      *
      * @param string $endpoint API endpoint to send the request to
      * @param string $perfData Data to send in the request body
-     * @return void
+     * @return SubmitResult
      */
-    private function submit(string $endpoint, string $perfData): void
+    private function submit(string $endpoint, string $perfData): SubmitResult
     {
-        // Prepare request options
         $options = [
-            'headers' => array_merge($this->defaultHeaders, []),
+            'headers' => $this->defaultHeaders,
             'body' => $perfData,
         ];
 
-        $this->httpClient->post($endpoint, $options);
+        return $this->httpClient->post($endpoint, $options);
     }
-
 }
