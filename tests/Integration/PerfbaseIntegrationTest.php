@@ -17,6 +17,9 @@ use Perfbase\SDK\Tests\BaseTest;
  */
 class PerfbaseIntegrationTest extends BaseTest
 {
+    /** Valid extension JSON output for use in tests that call submitTrace() */
+    private const EXTENSION_JSON = '{"v":1,"p":"dGVzdA=="}';
+
     private MockInterface $mockExtension;
     private MockInterface $mockHttpClient;
     private MockInterface $mockApiClient;
@@ -52,22 +55,21 @@ class PerfbaseIntegrationTest extends BaseTest
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
         $this->mockExtension->shouldReceive('startSpan')->once()->with('integration-span', $this->config->flags, []);
         $this->mockExtension->shouldReceive('stopSpan')->once()->with('integration-span');
-        $this->mockExtension->shouldReceive('getSpanData')->twice()->andReturn('integration-trace-data');
-        $this->mockExtension->shouldReceive('reset')->twice(); // submitTrace success + destructor
+        $this->mockExtension->shouldReceive('getSpanData')->twice()->andReturn(self::EXTENSION_JSON);
+        $this->mockExtension->shouldReceive('reset')->twice();
 
         $this->mockApiClient->shouldReceive('submitTrace')
             ->once()
-            ->with('integration-trace-data')
+            ->with(Mockery::on(fn(string $p) => str_contains($p, '"v":1')))
             ->andReturn(SubmitResult::success(202));
 
         $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
 
         $perfbase->startTraceSpan('integration-span');
-        $stopResult = $perfbase->stopTraceSpan('integration-span');
-        $this->assertTrue($stopResult);
+        $this->assertTrue($perfbase->stopTraceSpan('integration-span'));
 
         $traceData = $perfbase->getTraceData();
-        $this->assertEquals('integration-trace-data', $traceData);
+        $this->assertEquals(self::EXTENSION_JSON, $traceData);
 
         $result = $perfbase->submitTrace();
         $this->assertTrue($result->isSuccess());
@@ -84,12 +86,11 @@ class PerfbaseIntegrationTest extends BaseTest
         $this->mockExtension->shouldReceive('stopSpan')->once()->with('span-1');
         $this->mockExtension->shouldReceive('startSpan')->once()->with('span-2', $this->config->flags, []);
         $this->mockExtension->shouldReceive('stopSpan')->once()->with('span-2');
-        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn('multi-span-data');
+        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn(self::EXTENSION_JSON);
         $this->mockExtension->shouldReceive('reset')->twice();
 
         $this->mockApiClient->shouldReceive('submitTrace')
             ->once()
-            ->with('multi-span-data')
             ->andReturn(SubmitResult::success());
 
         $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
@@ -99,8 +100,7 @@ class PerfbaseIntegrationTest extends BaseTest
         $this->assertTrue($perfbase->stopTraceSpan('span-2'));
         $this->assertTrue($perfbase->stopTraceSpan('span-1'));
 
-        $result = $perfbase->submitTrace();
-        $this->assertTrue($result->isSuccess());
+        $this->assertTrue($perfbase->submitTrace()->isSuccess());
     }
 
     /**
@@ -116,12 +116,11 @@ class PerfbaseIntegrationTest extends BaseTest
         $this->mockExtension->shouldReceive('startSpan')->once()->with('modified-span', $newFlags, []);
         $this->mockExtension->shouldReceive('stopSpan')->once()->with('config-span');
         $this->mockExtension->shouldReceive('stopSpan')->once()->with('modified-span');
-        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn('config-change-data');
+        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn(self::EXTENSION_JSON);
         $this->mockExtension->shouldReceive('reset')->twice();
 
         $this->mockApiClient->shouldReceive('submitTrace')
             ->once()
-            ->with('config-change-data')
             ->andReturn(SubmitResult::success());
 
         $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
@@ -132,8 +131,7 @@ class PerfbaseIntegrationTest extends BaseTest
         $perfbase->stopTraceSpan('config-span');
         $perfbase->stopTraceSpan('modified-span');
 
-        $result = $perfbase->submitTrace();
-        $this->assertTrue($result->isSuccess());
+        $this->assertTrue($perfbase->submitTrace()->isSuccess());
     }
 
     /**
@@ -144,18 +142,16 @@ class PerfbaseIntegrationTest extends BaseTest
     {
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
         $this->mockExtension->shouldReceive('startSpan')->once()->with('error-span', $this->config->flags, []);
-        $this->mockExtension->shouldReceive('reset')->once(); // destructor only
+        $this->mockExtension->shouldReceive('reset')->once();
 
         $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
 
         $perfbase->startTraceSpan('error-span');
 
-        $result = $perfbase->stopTraceSpan('non-existent-span');
-        $this->assertFalse($result);
+        $this->assertFalse($perfbase->stopTraceSpan('non-existent-span'));
 
         $this->mockExtension->shouldReceive('stopSpan')->once()->with('error-span');
-        $result = $perfbase->stopTraceSpan('error-span');
-        $this->assertTrue($result);
+        $this->assertTrue($perfbase->stopTraceSpan('error-span'));
     }
 
     /**
@@ -164,25 +160,22 @@ class PerfbaseIntegrationTest extends BaseTest
      */
     public function testApiClientIntegration(): void
     {
-        $testData = 'api-integration-data';
+        $testData = '{"v":1,"p":"test","d":"2024-01-01T00:00:00Z"}';
 
         $this->mockHttpClient->shouldReceive('post')
             ->once()
             ->with('/v1/submit', Mockery::on(function ($options) use ($testData) {
                 return $options['body'] === $testData
-                    && isset($options['headers']['Authorization'])
                     && $options['headers']['Authorization'] === 'Bearer integration-test-key';
             }))
             ->andReturn(SubmitResult::success(202));
 
         $apiClient = new ApiClient($this->config, $this->mockHttpClient);
-        $result = $apiClient->submitTrace($testData);
-
-        $this->assertTrue($result->isSuccess());
+        $this->assertTrue($apiClient->submitTrace($testData)->isSuccess());
     }
 
     /**
-     * Test full stack integration with API client
+     * Test full stack integration: Perfbase → TracePayloadFactory → ApiClient → HttpClient
      * @covers \Perfbase\SDK\Perfbase
      */
     public function testFullStackIntegration(): void
@@ -190,13 +183,18 @@ class PerfbaseIntegrationTest extends BaseTest
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
         $this->mockExtension->shouldReceive('startSpan')->once()->with('full-stack', $this->config->flags, []);
         $this->mockExtension->shouldReceive('stopSpan')->once()->with('full-stack');
-        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn('full-stack-data');
+        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn(self::EXTENSION_JSON);
         $this->mockExtension->shouldReceive('reset')->twice();
 
         $this->mockHttpClient->shouldReceive('post')
             ->once()
             ->with('/v1/submit', Mockery::on(function ($options) {
-                return $options['body'] === 'full-stack-data'
+                $body = json_decode($options['body'], true);
+                // Factory should have injected 'd' timestamp
+                return is_array($body)
+                    && $body['v'] === 1
+                    && $body['p'] === 'dGVzdA=='
+                    && isset($body['d'])
                     && isset($options['headers']['Authorization']);
             }))
             ->andReturn(SubmitResult::success(202));
@@ -206,9 +204,7 @@ class PerfbaseIntegrationTest extends BaseTest
 
         $perfbase->startTraceSpan('full-stack');
         $perfbase->stopTraceSpan('full-stack');
-        $result = $perfbase->submitTrace();
-
-        $this->assertTrue($result->isSuccess());
+        $this->assertTrue($perfbase->submitTrace()->isSuccess());
     }
 
     /**
@@ -220,7 +216,7 @@ class PerfbaseIntegrationTest extends BaseTest
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
         $this->mockExtension->shouldReceive('startSpan')->once();
         $this->mockExtension->shouldReceive('stopSpan')->once();
-        $this->mockExtension->shouldReceive('getSpanData')->andReturn('failed-data');
+        $this->mockExtension->shouldReceive('getSpanData')->andReturn(self::EXTENSION_JSON);
         $this->mockExtension->shouldReceive('reset')->once(); // destructor only
 
         $this->mockHttpClient->shouldReceive('post')
@@ -246,7 +242,7 @@ class PerfbaseIntegrationTest extends BaseTest
     {
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
         $this->mockExtension->shouldReceive('startSpan')->once()->with('cleanup-span', $this->config->flags, []);
-        $this->mockExtension->shouldReceive('reset')->twice(); // manual + destructor
+        $this->mockExtension->shouldReceive('reset')->twice();
 
         $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
 

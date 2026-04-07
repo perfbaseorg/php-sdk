@@ -80,4 +80,61 @@ class SubmitResultTest extends BaseTest
         $this->assertSame(401, $result->getStatusCode());
         $this->assertSame('Unauthorized', $result->getMessage());
     }
+
+    /**
+     * @covers ::retryableFailure
+     */
+    public function testRetryableFailureDefaultValues(): void
+    {
+        $result = SubmitResult::retryableFailure();
+
+        $this->assertTrue($result->isRetryable());
+        $this->assertNull($result->getStatusCode());
+        $this->assertSame('', $result->getMessage());
+    }
+
+    /**
+     * @covers ::permanentFailure
+     */
+    public function testPermanentFailureDefaultValues(): void
+    {
+        $result = SubmitResult::permanentFailure();
+
+        $this->assertTrue($result->isPermanentFailure());
+        $this->assertNull($result->getStatusCode());
+        $this->assertSame('', $result->getMessage());
+    }
+
+    /**
+     * @covers ::isSuccess
+     * @covers ::isRetryable
+     * @covers ::isPermanentFailure
+     */
+    public function testStatusMethodsMutuallyExclusive(): void
+    {
+        $success = SubmitResult::success();
+        $this->assertTrue($success->isSuccess());
+        $this->assertFalse($success->isRetryable());
+        $this->assertFalse($success->isPermanentFailure());
+
+        $retryable = SubmitResult::retryableFailure();
+        $this->assertFalse($retryable->isSuccess());
+        $this->assertTrue($retryable->isRetryable());
+        $this->assertFalse($retryable->isPermanentFailure());
+
+        $permanent = SubmitResult::permanentFailure();
+        $this->assertFalse($permanent->isSuccess());
+        $this->assertFalse($permanent->isRetryable());
+        $this->assertTrue($permanent->isPermanentFailure());
+    }
+
+    /**
+     * @covers ::getStatus
+     */
+    public function testGetStatusReturnsCorrectConstants(): void
+    {
+        $this->assertSame(SubmitResult::STATUS_SUCCESS, SubmitResult::success()->getStatus());
+        $this->assertSame(SubmitResult::STATUS_RETRYABLE_FAILURE, SubmitResult::retryableFailure()->getStatus());
+        $this->assertSame(SubmitResult::STATUS_PERMANENT_FAILURE, SubmitResult::permanentFailure()->getStatus());
+    }
 }

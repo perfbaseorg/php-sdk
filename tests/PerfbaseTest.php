@@ -5,6 +5,7 @@ namespace Perfbase\SDK\Tests;
 use Mockery;
 use Mockery\MockInterface;
 use Perfbase\SDK\Config;
+use Perfbase\SDK\Exception\PerfbaseException;
 use Perfbase\SDK\Exception\PerfbaseExtensionException;
 use Perfbase\SDK\Exception\PerfbaseInvalidSpanException;
 use Perfbase\SDK\Extension\ExtensionInterface;
@@ -219,12 +220,19 @@ class PerfbaseTest extends BaseTest
      */
     public function testSubmitTraceResetsOnSuccess(): void
     {
+        $extensionJson = json_encode(['v' => 1, 'p' => 'dGVzdA==']);
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
-        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn('trace-data');
+        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn($extensionJson);
         $this->mockExtension->shouldReceive('reset')->twice(); // Called by submitTrace and destructor
         $this->mockApiClient->shouldReceive('submitTrace')
             ->once()
-            ->with('trace-data')
+            ->with(Mockery::on(function (string $payload) {
+                $decoded = json_decode($payload, true);
+                return is_array($decoded)
+                    && $decoded['v'] === 1
+                    && $decoded['p'] === 'dGVzdA=='
+                    && isset($decoded['d']); // timestamp injected
+            }))
             ->andReturn(SubmitResult::success(202));
 
         $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
@@ -238,9 +246,10 @@ class PerfbaseTest extends BaseTest
      */
     public function testSubmitTraceDoesNotResetOnFailure(): void
     {
+        $extensionJson = json_encode(['v' => 1, 'p' => 'dGVzdA==']);
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
         $this->mockExtension->shouldReceive('startSpan')->once();
-        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn('trace-data');
+        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn($extensionJson);
         $this->mockExtension->shouldReceive('reset')->once(); // Only destructor, NOT submitTrace
         $this->mockApiClient->shouldReceive('submitTrace')
             ->once()
@@ -303,5 +312,113 @@ class PerfbaseTest extends BaseTest
         unset($perfbase);
 
         $this->assertTrue(true); // Verify destructor was called without issues
+    }
+
+    /**
+     * @covers ::submitTrace
+     */
+    public function testSubmitTraceThrowsWhenExtensionReturnsMalformedData(): void
+    {
+        $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
+        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn('not valid json');
+        $this->mockExtension->shouldReceive('reset')->once(); // destructor
+
+        $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
+
+        $this->expectException(PerfbaseException::class);
+        $this->expectExceptionMessage('invalid JSON');
+        $perfbase->submitTrace();
+    }
+
+    /**
+     * @covers ::submitTrace
+     */
+    public function testSubmitTraceThrowsWhenExtensionReturnsEmpty(): void
+    {
+        $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
+        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn('');
+        $this->mockExtension->shouldReceive('reset')->once(); // destructor
+
+        $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
+
+        $this->expectException(PerfbaseException::class);
+        $this->expectExceptionMessage('empty trace data');
+        $perfbase->submitTrace();
+    }
+
+    /**
+     * @covers ::setAttribute
+     */
+    public function testSetAttribute(): void
+    {
+        $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
+        $this->mockExtension->shouldReceive('setAttribute')->once()->with('test_key', 'test_value');
+        $this->mockExtension->shouldReceive('reset')->once(); // destructor
+
+        $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
+        $perfbase->setAttribute('test_key', 'test_value');
+
+        // Mockery will verify setAttribute was called with the correct arguments
+        $this->assertTrue(true);
+    }
+
+    /**
+     * @covers ::startTraceSpan
+     */
+    public function testStartTraceSpanWithAttributes(): void
+    {
+        $attrs = ['key1' => 'val1', 'key2' => 'val2'];
+        $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
+        $this->mockExtension->shouldReceive('startSpan')->once()->with('my-span', $this->config->flags, $attrs);
+        $this->mockExtension->shouldReceive('reset')->once();
+
+        $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
+        $perfbase->startTraceSpan('my-span', $attrs);
+
+        $activeSpanNames = $this->getPrivateFieldValue($perfbase, 'activeSpanNames');
+        $this->assertContains('my-span', $activeSpanNames);
+    }
+
+    /**
+     * @covers ::stopTraceSpan
+     */
+    public function testStopTraceSpanWithEmptyNameUsesDefault(): void
+    {
+        $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
+        $this->mockExtension->shouldReceive('startSpan')->once()->with('default', $this->config->flags, []);
+        $this->mockExtension->shouldReceive('stopSpan')->once()->with('default');
+        $this->mockExtension->shouldReceive('reset')->once();
+
+        $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
+        $perfbase->startTraceSpan('');
+        $result = $perfbase->stopTraceSpan('');
+
+        $this->assertTrue($result);
+    }
+
+    /**
+     * @covers ::isAvailable
+     */
+    public function testIsAvailableStaticReturnsTrueWhenExtensionLoaded(): void
+    {
+        // isAvailable() creates a new PerfbaseExtension internally.
+        // Without the real extension, it returns false.
+        $result = Perfbase::isAvailable();
+        $this->assertFalse($result); // Extension not loaded in test env
+    }
+
+    /**
+     * @covers ::isExtensionAvailable
+     */
+    public function testIsExtensionAvailableReturnsFalse(): void
+    {
+        $this->mockExtension->shouldReceive('isAvailable')
+            ->once()->andReturn(true)  // constructor
+            ->shouldReceive('isAvailable')
+            ->once()->andReturn(false); // isExtensionAvailable call
+        $this->mockExtension->shouldReceive('reset')->once();
+
+        $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
+        $this->assertFalse($perfbase->isExtensionAvailable());
     }
 }

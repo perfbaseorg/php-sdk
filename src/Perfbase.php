@@ -167,9 +167,9 @@ class Perfbase
      */
     public function submitTrace(): SubmitResult
     {
-        $result = $this->apiClient->submitTrace(
-            $this->getTraceData()
-        );
+        $payload = TracePayloadFactory::build($this->getTraceData());
+
+        $result = $this->apiClient->submitTrace($payload);
 
         if ($result->isSuccess()) {
             $this->reset();
