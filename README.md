@@ -286,6 +286,8 @@ $perfbase->setAttribute('cache_hit_ratio', '0.85');
 #### `submitTrace(): SubmitResult`
 Submit collected profiling data to Perfbase. Resets the session on success; preserves trace state on failure so callers can decide whether to retry or discard.
 
+The SDK sends the exact raw bytes returned by `perfbase_get_data()` as the request body. It adds the payload encoding version and client-created timestamp as HTTP headers; it does not JSON-wrap or base64-encode the trace payload.
+
 The returned `SubmitResult` provides:
 - `isSuccess(): bool` — delivery confirmed
 - `isRetryable(): bool` — transient failure (network error, 429, 5xx)
@@ -303,7 +305,7 @@ if (!$result->isSuccess()) {
 ```
 
 #### `getTraceData(string $spanName = ''): string`
-Retrieve raw trace data (useful for debugging or custom processing).
+Retrieve the raw Brotli-compressed MessagePack trace payload produced by the extension (useful for debugging or custom processing).
 
 ```php
 $rawData = $perfbase->getTraceData();

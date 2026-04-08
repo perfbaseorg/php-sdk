@@ -220,19 +220,14 @@ class PerfbaseTest extends BaseTest
      */
     public function testSubmitTraceResetsOnSuccess(): void
     {
-        $extensionJson = json_encode(['v' => 1, 'p' => 'dGVzdA==']);
+        $extensionData = 'test-binary-data';
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
-        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn($extensionJson);
+        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn($extensionData);
+        $this->mockExtension->shouldReceive('getVersion')->once()->andReturn(1);
         $this->mockExtension->shouldReceive('reset')->twice(); // Called by submitTrace and destructor
         $this->mockApiClient->shouldReceive('submitTrace')
             ->once()
-            ->with(Mockery::on(function (string $payload) {
-                $decoded = json_decode($payload, true);
-                return is_array($decoded)
-                    && $decoded['v'] === 1
-                    && $decoded['p'] === 'dGVzdA=='
-                    && isset($decoded['d']); // timestamp injected
-            }))
+            ->with($extensionData, 1, Mockery::pattern('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/'))
             ->andReturn(SubmitResult::success(202));
 
         $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
@@ -246,13 +241,15 @@ class PerfbaseTest extends BaseTest
      */
     public function testSubmitTraceDoesNotResetOnFailure(): void
     {
-        $extensionJson = json_encode(['v' => 1, 'p' => 'dGVzdA==']);
+        $extensionData = 'test-binary-data';
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
         $this->mockExtension->shouldReceive('startSpan')->once();
-        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn($extensionJson);
+        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn($extensionData);
+        $this->mockExtension->shouldReceive('getVersion')->once()->andReturn(1);
         $this->mockExtension->shouldReceive('reset')->once(); // Only destructor, NOT submitTrace
         $this->mockApiClient->shouldReceive('submitTrace')
             ->once()
+            ->with($extensionData, 1, Mockery::pattern('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/'))
             ->andReturn(SubmitResult::retryableFailure(503, 'Service Unavailable'));
 
         $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
@@ -317,16 +314,17 @@ class PerfbaseTest extends BaseTest
     /**
      * @covers ::submitTrace
      */
-    public function testSubmitTraceThrowsWhenExtensionReturnsMalformedData(): void
+    public function testSubmitTraceThrowsWhenExtensionReturnsInvalidVersion(): void
     {
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
-        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn('not valid json');
+        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn('binary-data');
+        $this->mockExtension->shouldReceive('getVersion')->once()->andReturn(0);
         $this->mockExtension->shouldReceive('reset')->once(); // destructor
 
         $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
 
         $this->expectException(PerfbaseException::class);
-        $this->expectExceptionMessage('invalid JSON');
+        $this->expectExceptionMessage('invalid encoding version');
         $perfbase->submitTrace();
     }
 
@@ -337,6 +335,7 @@ class PerfbaseTest extends BaseTest
     {
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
         $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn('');
+        $this->mockExtension->shouldReceive('getVersion')->never();
         $this->mockExtension->shouldReceive('reset')->once(); // destructor
 
         $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);

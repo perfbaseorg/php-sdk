@@ -34,7 +34,6 @@ class ApiClient
             'Authorization' => 'Bearer ' . $this->config->api_key,
             'Accept' => 'application/json',
             'User-Agent' => sprintf('Perfbase-PHP-SDK/%s', Perfbase::VERSION),
-            'Content-Type' => 'application/json',
             'Connection' => 'keep-alive',
         ];
 
@@ -59,11 +58,13 @@ class ApiClient
      * Submits a trace to the Perfbase API
      *
      * @param string $perfData Data to send in the request body
+     * @param int $payloadVersion Payload encoding version. Defaults to `1` for backwards compatibility.
+     * @param string|null $clientCreatedAt Trace creation timestamp in ISO 8601 UTC
      * @return SubmitResult
      */
-    public function submitTrace(string $perfData): SubmitResult
+    public function submitTrace(string $perfData, int $payloadVersion = 1, ?string $clientCreatedAt = null): SubmitResult
     {
-        return $this->submit('/v1/submit', $perfData);
+        return $this->submit('/v1/submit', $perfData, $payloadVersion, $clientCreatedAt);
     }
 
     /**
@@ -71,12 +72,22 @@ class ApiClient
      *
      * @param string $endpoint API endpoint to send the request to
      * @param string $perfData Data to send in the request body
+     * @param int $payloadVersion Payload encoding version
+     * @param string|null $clientCreatedAt Trace creation timestamp in ISO 8601 UTC
      * @return SubmitResult
      */
-    private function submit(string $endpoint, string $perfData): SubmitResult
+    private function submit(string $endpoint, string $perfData, int $payloadVersion, ?string $clientCreatedAt = null): SubmitResult
     {
+        $headers = $this->defaultHeaders;
+        $headers['Content-Type'] = 'application/octet-stream';
+        $headers['X-Perfbase-Payload-Version'] = (string) $payloadVersion;
+
+        if ($clientCreatedAt !== null) {
+            $headers['X-Perfbase-Client-Created-At'] = $clientCreatedAt;
+        }
+
         $options = [
-            'headers' => $this->defaultHeaders,
+            'headers' => $headers,
             'body' => $perfData,
         ];
 

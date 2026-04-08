@@ -3,6 +3,7 @@
 namespace Perfbase\SDK;
 
 use Perfbase\SDK\Exception\PerfbaseExtensionException;
+use Perfbase\SDK\Exception\PerfbaseException;
 use Perfbase\SDK\Exception\PerfbaseInvalidConfigException;
 use Perfbase\SDK\Exception\PerfbaseInvalidSpanException;
 use Perfbase\SDK\Extension\ExtensionInterface;
@@ -24,7 +25,7 @@ class Perfbase
     /**
      * The version of the Perfbase SDK
      */
-    public const VERSION = '1.0.0';
+    public const VERSION = '1.1.0';
 
     /**
      * The default span name used when starting a profiling session
@@ -167,9 +168,22 @@ class Perfbase
      */
     public function submitTrace(): SubmitResult
     {
-        $payload = TracePayloadFactory::build($this->getTraceData());
+        $traceData = $this->getTraceData();
 
-        $result = $this->apiClient->submitTrace($payload);
+        if ($traceData === '') {
+            throw new PerfbaseException('Extension returned empty trace data');
+        }
+
+        $payloadVersion = $this->extension->getVersion();
+        if ($payloadVersion <= 0) {
+            throw new PerfbaseException('Extension returned invalid encoding version');
+        }
+
+        $result = $this->apiClient->submitTrace(
+            $traceData,
+            $payloadVersion,
+            gmdate('Y-m-d\TH:i:s\Z')
+        );
 
         if ($result->isSuccess()) {
             $this->reset();
