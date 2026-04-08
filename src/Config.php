@@ -24,7 +24,7 @@ class Config
      * Base URL for the Perfbase API
      * @var string
      */
-    public string $api_url = 'https://receiver.perfbase.com';
+    public string $api_url = 'https://ingress.perfbase.cloud';
 
     /**
      * Proxy server to use for connecting to the Perfbase API
