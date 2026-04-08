@@ -1,36 +1,54 @@
-# Perfbase PHP SDK
+<p align="center">
+  <a href="https://perfbase.com">
+    <img src="https://cdn.perfbase.com/img/logo-full.svg" alt="Perfbase" width="300">
+  </a>
+</p>
 
-![Packagist License](https://img.shields.io/packagist/l/perfbase/php-sdk)
-![Packagist Version](https://img.shields.io/packagist/v/perfbase/php-sdk)
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/perfbaseorg/php-sdk/ci.yml?branch=main)
+<h3 align="center">Perfbase PHP SDK</h3>
+<p align="center">
+  The official PHP SDK for <a href="https://perfbase.com">Perfbase</a> — application performance monitoring and profiling for PHP applications.
+</p>
 
-A comprehensive PHP SDK for application performance monitoring (APM) and profiling with Perfbase. This SDK provides real-time performance insights, distributed tracing, and detailed profiling capabilities for PHP applications.
+<p align="center">
+  <a href="https://packagist.org/packages/perfbase/php-sdk"><img src="https://img.shields.io/packagist/v/perfbase/php-sdk" alt="Packagist Version"></a>
+  <a href="https://github.com/perfbaseorg/php-sdk/blob/main/LICENSE.txt"><img src="https://img.shields.io/packagist/l/perfbase/php-sdk" alt="License"></a>
+  <a href="https://github.com/perfbaseorg/php-sdk/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/perfbaseorg/php-sdk/ci.yml?branch=main" alt="CI"></a>
+  <img src="https://img.shields.io/badge/php-7.4%2B-blue" alt="PHP Version">
+</p>
 
-## Important: Using a PHP Framework?
+## Using a PHP framework?
 
-If you're using a PHP framework, we highly recommend using our dedicated framework integrations for the best experience:
+If you're using a PHP framework, we recommend using our dedicated framework integrations for the best experience:
 
-- **Laravel**: Use `perfbase/laravel` for automatic integration with Laravel applications
-- **Symfony**: Coming soon
-- **Other frameworks**: This SDK provides the foundation for custom integrations
+- **Laravel**: [`perfbase/laravel`](https://packagist.org/packages/perfbase/laravel)
+- **Symfony**: [`perfbase/symfony`](https://packagist.org/packages/perfbase/symfony)
+- **WordPress**: [`perfbase/wordpress`](https://packagist.org/packages/perfbase/wordpress)
+- **CakePHP**: [`perfbase/cakephp`](https://packagist.org/packages/perfbase/cakephp)
+- **Drupal**: [`perfbase/drupal`](https://packagist.org/packages/perfbase/drupal)
+- **Slim**: [`perfbase/slim`](https://packagist.org/packages/perfbase/slim)
+- **Joomla**: [`perfbase/joomla`](https://packagist.org/packages/perfbase/joomla)
+- **CodeIgniter 4**: [`perfbase/codeigniter4`](https://packagist.org/packages/perfbase/codeigniter4)
+- **Yii 1.1**: [`perfbase/yii1`](https://packagist.org/packages/perfbase/yii1)
+- **Yii 2**: [`perfbase/yii2`](https://packagist.org/packages/perfbase/yii2)
+- **Yii 3**: [`perfbase/yii3`](https://packagist.org/packages/perfbase/yii3)
 
-If you're **NOT using a framework** or need **custom integration** - this is the SDK for you!
+If you're not using a framework or need a custom integration, this SDK is for you.
 
 ## Features
 
-- 🚀 **Real-time Performance Profiling** - CPU time, memory usage, and execution tracing
-- 📊 **Multi-span Tracing** - Track multiple concurrent operations within a single request
-- 🔍 **Database Query Tracking** - Monitor PDO, MongoDB, Elasticsearch queries
-- 🌐 **HTTP Request Monitoring** - Track outbound HTTP calls and API requests
-- 💾 **Cache Operation Tracking** - Monitor Redis, Memcached, and other cache operations
-- ⚡ **Queue System Monitoring** - Track background job performance
-- 🏷️ **Custom Attributes** - Add contextual metadata to your traces
-- 🔧 **Configurable Feature Flags** - Enable/disable specific profiling features
-- 🛡️ **Multi-tenant Support** - Organization and project-level data isolation
+- **Real-time performance profiling** — CPU time, memory usage, and execution tracing
+- **Multi-span tracing** — track multiple concurrent operations within a single request
+- **Database query tracking** — monitor PDO, MongoDB, Elasticsearch queries
+- **HTTP request monitoring** — track outbound HTTP calls and API requests
+- **Cache operation tracking** — monitor Redis, Memcached, and other cache operations
+- **Queue system monitoring** — track background job performance
+- **Custom attributes** — add contextual metadata to your traces
+- **Configurable feature flags** — enable/disable specific profiling features
+- **Multi-tenant support** — organization and project-level data isolation
 
 ## Requirements
 
-- **PHP**: `7.4` to `8.4`
+- **PHP**: `7.4` to `8.5`
 - **Operating System**: Linux or macOS (Windows not supported)
 - **Dependencies**: 
   - `ext-curl` (usually enabled by default)
@@ -42,7 +60,7 @@ If you're **NOT using a framework** or need **custom integration** - this is the
 ### 1. Install the SDK
 
 ```bash
-composer require perfbase/php-sdk
+composer require perfbase/php-sdk:^1.0
 ```
 
 ### 2. Install the Perfbase PHP Extension
@@ -133,7 +151,7 @@ try {
     $result = processApiRequest($request);
     
     $perfbase->setAttribute('status', 'success');
-    $perfbase->setAttribute('response_size', strlen($result));
+    $perfbase->setAttribute('response_size', (string) strlen($result));
     
 } catch (Exception $e) {
     $perfbase->setAttribute('status', 'error');
@@ -376,8 +394,8 @@ $perfbase->startTraceSpan('database_query', [
     'rows_expected' => '1'
 ]);
 
-$perfbase->setAttribute('rows_returned', count($results));
-$perfbase->setAttribute('query_time_ms', $executionTime);
+$perfbase->setAttribute('rows_returned', (string) count($results));
+$perfbase->setAttribute('query_time_ms', (string) $executionTime);
 ```
 
 ### 3. Error Handling in Spans
@@ -438,28 +456,12 @@ var_dump(Perfbase::isAvailable());
 
 ## Documentation
 
-Comprehensive documentation is available at [https://docs.perfbase.com](https://docs.perfbase.com), including:
+Full documentation is available at [perfbase.com/docs](https://perfbase.com/docs).
 
-- Data handling policies and security measures
-- Legal information and compliance
-- Detailed information about data collection and storage
-- Advanced configuration options
-- Integration guides for various frameworks
+- **Docs**: [perfbase.com/docs](https://perfbase.com/docs)
+- **Issues**: [github.com/perfbaseorg/php-sdk/issues](https://github.com/perfbaseorg/php-sdk/issues)
+- **Support**: [support@perfbase.com](mailto:support@perfbase.com)
 
 ## License
 
-This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE.txt) file for details.
-
-## Support
-
-- **Email**: [support@perfbase.com](mailto:support@perfbase.com)
-- **Documentation**: [https://docs.perfbase.com](https://docs.perfbase.com)
-- **Issues**: [GitHub Issues](https://github.com/perfbaseorg/php-sdk/issues)
-
-## Contributing
-
-We welcome contributions! Please see our contributing guidelines and feel free to submit pull requests.
-
----
-
-**Note**: This SDK requires the `ext-perfbase` PHP extension. Without it, the SDK will throw a `PerfbaseExtensionException` during initialization. The extension is currently available for Linux and macOS only.
+Apache-2.0. See [LICENSE.txt](LICENSE.txt).
