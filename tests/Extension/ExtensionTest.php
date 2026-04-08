@@ -93,6 +93,23 @@ class ExtensionTest extends BaseTest
     }
 
     /**
+     * @covers ::getVersion
+     */
+    public function testGetVersion(): void
+    {
+        if (!ExtensionUtils::perfbaseExtensionLoaded()) {
+            $this->markTestSkipped('Perfbase extension not loaded');
+        }
+
+        $extension = new PerfbaseExtension();
+
+        $version = $extension->getVersion();
+
+        $this->assertIsInt($version);
+        $this->assertGreaterThan(0, $version);
+    }
+
+    /**
      * @covers ::reset
      */
     public function testReset(): void

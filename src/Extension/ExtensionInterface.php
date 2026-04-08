@@ -34,6 +34,13 @@ interface ExtensionInterface
     public function getSpanData(string $spanName = ''): string;
 
     /**
+     * Retrieves the encoding version for the current trace payload format.
+     *
+     * @return int
+     */
+    public function getVersion(): int;
+
+    /**
      * Sets an attribute for a specific span
      * @param string $key
      * @param string $value

@@ -65,3 +65,16 @@ if (!function_exists('perfbase_get_data')) {
         return '';
     }
 }
+
+if (!function_exists('perfbase_get_version')) {
+    /**
+     * Retrieves the encoding version for collected profiling data.
+     *
+     * @return int
+     */
+    function perfbase_get_version(): int
+    {
+        // Stub only—no implementation needed
+        return 1;
+    }
+}

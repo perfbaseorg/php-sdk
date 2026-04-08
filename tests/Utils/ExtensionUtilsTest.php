@@ -46,6 +46,7 @@ class ExtensionUtilsTest extends BaseTest
             'perfbase_disable',
             'perfbase_reset',
             'perfbase_get_data',
+            'perfbase_get_version',
             'perfbase_set_attribute'
         ];
         
@@ -101,10 +102,11 @@ class ExtensionUtilsTest extends BaseTest
         $this->assertContains('perfbase_disable', $methods);
         $this->assertContains('perfbase_reset', $methods);
         $this->assertContains('perfbase_get_data', $methods);
+        $this->assertContains('perfbase_get_version', $methods);
         $this->assertContains('perfbase_set_attribute', $methods);
         
-        // Verify the array has exactly 5 methods
-        $this->assertCount(5, $methods);
+        // Verify the array has exactly 6 methods
+        $this->assertCount(6, $methods);
     }
 
     /**

@@ -17,8 +17,9 @@ use Perfbase\SDK\Tests\BaseTest;
  */
 class PerfbaseIntegrationTest extends BaseTest
 {
-    /** Valid extension JSON output for use in tests that call submitTrace() */
-    private const EXTENSION_JSON = '{"v":1,"p":"dGVzdA=="}';
+    /** Valid raw extension bytes for use in tests that call submitTrace() */
+    private const EXTENSION_BYTES = 'test';
+    private const ISO_8601_UTC_PATTERN = '/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/';
 
     private MockInterface $mockExtension;
     private MockInterface $mockHttpClient;
@@ -55,14 +56,13 @@ class PerfbaseIntegrationTest extends BaseTest
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
         $this->mockExtension->shouldReceive('startSpan')->once()->with('integration-span', $this->config->flags, []);
         $this->mockExtension->shouldReceive('stopSpan')->once()->with('integration-span');
-        $this->mockExtension->shouldReceive('getSpanData')->twice()->andReturn(self::EXTENSION_JSON);
+        $this->mockExtension->shouldReceive('getSpanData')->twice()->andReturn(self::EXTENSION_BYTES);
+        $this->mockExtension->shouldReceive('getVersion')->once()->andReturn(1);
         $this->mockExtension->shouldReceive('reset')->twice();
 
         $this->mockApiClient->shouldReceive('submitTrace')
             ->once()
-            ->with(Mockery::on(function (string $p): bool {
-                return strpos($p, '"v":1') !== false;
-            }))
+            ->with(self::EXTENSION_BYTES, 1, Mockery::pattern(self::ISO_8601_UTC_PATTERN))
             ->andReturn(SubmitResult::success(202));
 
         $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
@@ -71,7 +71,7 @@ class PerfbaseIntegrationTest extends BaseTest
         $this->assertTrue($perfbase->stopTraceSpan('integration-span'));
 
         $traceData = $perfbase->getTraceData();
-        $this->assertEquals(self::EXTENSION_JSON, $traceData);
+        $this->assertEquals(self::EXTENSION_BYTES, $traceData);
 
         $result = $perfbase->submitTrace();
         $this->assertTrue($result->isSuccess());
@@ -88,7 +88,8 @@ class PerfbaseIntegrationTest extends BaseTest
         $this->mockExtension->shouldReceive('stopSpan')->once()->with('span-1');
         $this->mockExtension->shouldReceive('startSpan')->once()->with('span-2', $this->config->flags, []);
         $this->mockExtension->shouldReceive('stopSpan')->once()->with('span-2');
-        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn(self::EXTENSION_JSON);
+        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn(self::EXTENSION_BYTES);
+        $this->mockExtension->shouldReceive('getVersion')->once()->andReturn(1);
         $this->mockExtension->shouldReceive('reset')->twice();
 
         $this->mockApiClient->shouldReceive('submitTrace')
@@ -118,7 +119,8 @@ class PerfbaseIntegrationTest extends BaseTest
         $this->mockExtension->shouldReceive('startSpan')->once()->with('modified-span', $newFlags, []);
         $this->mockExtension->shouldReceive('stopSpan')->once()->with('config-span');
         $this->mockExtension->shouldReceive('stopSpan')->once()->with('modified-span');
-        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn(self::EXTENSION_JSON);
+        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn(self::EXTENSION_BYTES);
+        $this->mockExtension->shouldReceive('getVersion')->once()->andReturn(1);
         $this->mockExtension->shouldReceive('reset')->twice();
 
         $this->mockApiClient->shouldReceive('submitTrace')
@@ -162,22 +164,26 @@ class PerfbaseIntegrationTest extends BaseTest
      */
     public function testApiClientIntegration(): void
     {
-        $testData = '{"v":1,"p":"test","d":"2024-01-01T00:00:00Z"}';
+        $testData = 'binary-data';
+        $clientCreatedAt = '2024-01-01T00:00:00Z';
 
         $this->mockHttpClient->shouldReceive('post')
             ->once()
-            ->with('/v1/submit', Mockery::on(function ($options) use ($testData) {
+            ->with('/v1/submit', Mockery::on(function ($options) use ($testData, $clientCreatedAt) {
                 return $options['body'] === $testData
-                    && $options['headers']['Authorization'] === 'Bearer integration-test-key';
+                    && $options['headers']['Authorization'] === 'Bearer integration-test-key'
+                    && $options['headers']['Content-Type'] === 'application/octet-stream'
+                    && $options['headers']['X-Perfbase-Payload-Version'] === '1'
+                    && $options['headers']['X-Perfbase-Client-Created-At'] === $clientCreatedAt;
             }))
             ->andReturn(SubmitResult::success(202));
 
         $apiClient = new ApiClient($this->config, $this->mockHttpClient);
-        $this->assertTrue($apiClient->submitTrace($testData)->isSuccess());
+        $this->assertTrue($apiClient->submitTrace($testData, 1, $clientCreatedAt)->isSuccess());
     }
 
     /**
-     * Test full stack integration: Perfbase → TracePayloadFactory → ApiClient → HttpClient
+     * Test full stack integration: Perfbase → ApiClient → HttpClient
      * @covers \Perfbase\SDK\Perfbase
      */
     public function testFullStackIntegration(): void
@@ -185,18 +191,17 @@ class PerfbaseIntegrationTest extends BaseTest
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
         $this->mockExtension->shouldReceive('startSpan')->once()->with('full-stack', $this->config->flags, []);
         $this->mockExtension->shouldReceive('stopSpan')->once()->with('full-stack');
-        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn(self::EXTENSION_JSON);
+        $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn(self::EXTENSION_BYTES);
+        $this->mockExtension->shouldReceive('getVersion')->once()->andReturn(1);
         $this->mockExtension->shouldReceive('reset')->twice();
 
         $this->mockHttpClient->shouldReceive('post')
             ->once()
             ->with('/v1/submit', Mockery::on(function ($options) {
-                $body = json_decode($options['body'], true);
-                // Factory should have injected 'd' timestamp
-                return is_array($body)
-                    && $body['v'] === 1
-                    && $body['p'] === 'dGVzdA=='
-                    && isset($body['d'])
+                return $options['body'] === self::EXTENSION_BYTES
+                    && $options['headers']['Content-Type'] === 'application/octet-stream'
+                    && $options['headers']['X-Perfbase-Payload-Version'] === '1'
+                    && preg_match(self::ISO_8601_UTC_PATTERN, $options['headers']['X-Perfbase-Client-Created-At']) === 1
                     && isset($options['headers']['Authorization']);
             }))
             ->andReturn(SubmitResult::success(202));
@@ -218,7 +223,8 @@ class PerfbaseIntegrationTest extends BaseTest
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
         $this->mockExtension->shouldReceive('startSpan')->once();
         $this->mockExtension->shouldReceive('stopSpan')->once();
-        $this->mockExtension->shouldReceive('getSpanData')->andReturn(self::EXTENSION_JSON);
+        $this->mockExtension->shouldReceive('getSpanData')->andReturn(self::EXTENSION_BYTES);
+        $this->mockExtension->shouldReceive('getVersion')->once()->andReturn(1);
         $this->mockExtension->shouldReceive('reset')->once(); // destructor only
 
         $this->mockHttpClient->shouldReceive('post')
