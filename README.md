@@ -99,7 +99,7 @@ use Perfbase\SDK\Config;
 // Create configuration
 $config = Config::fromArray([
     'api_key' => 'your_api_key_here',
-    'api_url' => 'https://receiver.perfbase.com', // Optional: defaults to this URL
+    'api_url' => 'https://ingress.perfbase.cloud', // Optional: defaults to this URL
 ]);
 
 // Initialize Perfbase

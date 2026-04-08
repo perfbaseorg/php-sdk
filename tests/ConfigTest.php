@@ -166,7 +166,7 @@ class ConfigTest extends BaseTest
         $config = Config::new('my-key');
 
         $this->assertSame('my-key', $config->api_key);
-        $this->assertSame('https://receiver.perfbase.com', $config->api_url);
+        $this->assertSame('https://ingress.perfbase.cloud', $config->api_url);
         $this->assertNull($config->proxy);
         $this->assertSame(10, $config->timeout);
         $this->assertSame(FeatureFlags::DefaultFlags, $config->flags);
