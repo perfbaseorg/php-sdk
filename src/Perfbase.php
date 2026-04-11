@@ -104,17 +104,17 @@ class Perfbase
      */
     public function startTraceSpan(string $spanName, array $attributes = []): void
     {
-        $spanName = trim($spanName) ?: self::DEFAULT_SPAN_NAME;
+        $spanName = $this->validateSpanName($spanName);
 
         // Check to see if span is already active
-        if (in_array($spanName, $this->activeSpanNames)) {
-            trigger_error(sprintf('Perfbase: Attempted to start span "%s" which is already active. ', $spanName), E_USER_WARNING);
+        if (in_array($spanName, $this->activeSpanNames, true)) {
+            trigger_error(sprintf('Perfbase: Attempted to start span "%s" which is already active.', $spanName), E_USER_WARNING);
             return;
         }
 
         // Set the state to active
         $this->activeSpanNames[] = $spanName;
-        $this->extension->startSpan($spanName, $this->config->flags, $attributes);
+        $this->extension->startSpan($spanName, $this->config->getFlags(), $attributes);
     }
 
     /**
@@ -125,7 +125,7 @@ class Perfbase
      */
     public function stopTraceSpan(string $spanName): bool
     {
-        $spanName = trim($spanName) ?: self::DEFAULT_SPAN_NAME;
+        $spanName = $this->validateSpanName($spanName);
 
         // Check to see if span is active
         if (!$this->isSpanActive($spanName)) {
@@ -147,7 +147,7 @@ class Perfbase
      */
     private function isSpanActive(string $spanName): bool
     {
-        return in_array($spanName, $this->activeSpanNames);
+        return in_array($spanName, $this->activeSpanNames, true);
     }
 
     /**
@@ -155,7 +155,7 @@ class Perfbase
      */
     public function setFlags(int $flags): void
     {
-        $this->config->flags = $flags;
+        $this->config = $this->config->withFlags($flags);
     }
 
     /**
@@ -193,12 +193,20 @@ class Perfbase
     }
 
     /**
-     * Retrieves the trace data collected during the profiling session
-     * @param string $spanName Optional span name to get data for specific span
+     * Retrieves the trace data collected during the profiling session.
+     *
+     * The current extension only supports whole-trace retrieval.
+     *
+     * @param string $spanName Optional span name to get data for specific span.
+     * @deprecated Non-empty span names are not supported and will throw.
      * @return string
      */
     public function getTraceData(string $spanName = ''): string
     {
+        if ($spanName !== '') {
+            throw new PerfbaseException('Span-specific trace data retrieval is not supported by the current extension');
+        }
+
         return $this->extension->getSpanData($spanName);
     }
 
@@ -206,7 +214,7 @@ class Perfbase
      * Resets the trace session
      * @return void
      */
-    public function reset()
+    public function reset(): void
     {
         $this->activeSpanNames = [];
         $this->extension->reset();
@@ -217,7 +225,11 @@ class Perfbase
      */
     public function __destruct()
     {
-        $this->reset();
+        try {
+            $this->reset();
+        } catch (\Throwable $e) {
+            // Destructors must not throw during shutdown.
+        }
     }
 
     /**
@@ -253,6 +265,26 @@ class Perfbase
     public function setAttribute(string $key, string $value): void
     {
         $this->extension->setAttribute($key, $value);
+    }
+
+    /**
+     * @throws PerfbaseInvalidSpanException
+     */
+    private function validateSpanName(string $spanName): string
+    {
+        $normalizedSpanName = trim($spanName);
+
+        if ($normalizedSpanName === '') {
+            return self::DEFAULT_SPAN_NAME;
+        }
+
+        if (!preg_match('/^[A-Za-z0-9_-]{1,64}$/', $normalizedSpanName)) {
+            throw new PerfbaseInvalidSpanException(
+                'Span name must be 1-64 characters and contain only letters, numbers, hyphens, and underscores'
+            );
+        }
+
+        return $normalizedSpanName;
     }
 
 }

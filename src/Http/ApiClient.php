@@ -2,7 +2,6 @@
 
 namespace Perfbase\SDK\Http;
 
-use GuzzleHttp\Client as GuzzleClient;
 use Perfbase\SDK\Config;
 use Perfbase\SDK\Perfbase;
 use Perfbase\SDK\SubmitResult;
@@ -31,7 +30,7 @@ class ApiClient
     {
         $this->config = $config;
         $this->defaultHeaders = [
-            'Authorization' => 'Bearer ' . $this->config->api_key,
+            'Authorization' => 'Bearer ' . $this->config->getApiKey(),
             'Accept' => 'application/json',
             'User-Agent' => sprintf('Perfbase-PHP-SDK/%s', Perfbase::VERSION),
             'Connection' => 'keep-alive',
@@ -40,17 +39,11 @@ class ApiClient
         if ($httpClient !== null) {
             $this->httpClient = $httpClient;
         } else {
-            /** @var array<string, mixed> $httpClientConfig */
-            $httpClientConfig = [];
-            $httpClientConfig['base_uri'] = $config->api_url;
-            $httpClientConfig['timeout'] = $config->timeout;
-
-            if ($config->proxy) {
-                $httpClientConfig['proxy'] = $config->proxy;
-            }
-
-            $guzzleClient = new GuzzleClient($httpClientConfig);
-            $this->httpClient = new GuzzleHttpClient($guzzleClient);
+            $this->httpClient = new CurlHttpClient(
+                $config->getApiUrl(),
+                $config->getTimeout(),
+                $config->getProxy()
+            );
         }
     }
 

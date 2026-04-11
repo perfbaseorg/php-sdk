@@ -197,9 +197,9 @@ $result = $perfbase->submitTrace();
 ```php
 $config = Config::fromArray([
     'api_key' => 'required_api_key',           // Your Perfbase API key
-    'api_url' => 'https://custom.endpoint',    // Custom API endpoint (optional)
+    'api_url' => 'https://custom.endpoint',    // Custom API endpoint (optional, HTTPS only)
     'timeout' => 10,                           // Request timeout in seconds (default: 10)
-    'proxy' => 'http://proxy.example.com:8080' // Proxy server (optional)
+    'proxy' => 'http://proxy.example.com:8080' // Proxy server (optional: http, https, socks5, socks5h)
 ]);
 ```
 
@@ -262,6 +262,8 @@ $perfbase->setFlags(FeatureFlags::TrackCpuTime | FeatureFlags::TrackMemoryAlloca
 #### `startTraceSpan(string $spanName, array $attributes = []): void`
 Start profiling a named span with optional initial attributes.
 
+Span names must be 1-64 characters and may only contain letters, numbers, hyphens, and underscores. Empty or whitespace-only names normalize to `default`.
+
 ```php
 $perfbase->startTraceSpan('user_login', [
     'user_id' => '123',
@@ -306,6 +308,8 @@ if (!$result->isSuccess()) {
 
 #### `getTraceData(string $spanName = ''): string`
 Retrieve the raw Brotli-compressed MessagePack trace payload produced by the extension (useful for debugging or custom processing).
+
+The current extension only supports whole-trace retrieval. Pass the default empty argument; the `spanName` parameter is kept only for backwards compatibility, and non-empty values are rejected.
 
 ```php
 $rawData = $perfbase->getTraceData();
@@ -386,6 +390,8 @@ $perfbase->startTraceSpan('function1');
 $perfbase->startTraceSpan('temp_span');
 ```
 
+Span names may only use letters, numbers, hyphens, and underscores, and must not exceed 64 characters.
+
 ### 2. Attribute Usage
 Add meaningful context through attributes:
 
@@ -422,6 +428,9 @@ try {
 - Use `FeatureFlags::UseCoarseClock` for high-throughput applications
 - Only enable the tracking features you need
 - Consider the overhead of frequent `setAttribute()` calls in tight loops
+
+### 5. Forwarded Header Trust
+`EnvironmentUtils::getUserIp()` is a best-effort helper. It reads common proxy/CDN headers when present, but it does not implement a trusted-proxy policy. Only use forwarded-header-derived IPs when your deployment sanitizes those headers at the edge.
 
 ## Troubleshooting
 

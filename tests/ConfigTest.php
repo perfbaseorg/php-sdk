@@ -12,10 +12,12 @@ use Perfbase\SDK\FeatureFlags;
 class ConfigTest extends BaseTest
 {
     /**
-     * Test the constructor sets the properties correctly
      * @covers ::new
-     * @return void
-     * @throws PerfbaseInvalidConfigException
+     * @covers ::getApiKey
+     * @covers ::getApiUrl
+     * @covers ::getProxy
+     * @covers ::getTimeout
+     * @covers ::getFlags
      */
     public function testConstructorSetsProperties(): void
     {
@@ -24,20 +26,20 @@ class ConfigTest extends BaseTest
             0,
             'https://custom.url',
             'http://proxy:8080',
-            1000,
+            1000
         );
 
-        $this->assertSame('test_api_key', $config->api_key);
-        $this->assertSame('https://custom.url', $config->api_url);
-        $this->assertSame('http://proxy:8080', $config->proxy);
-        $this->assertSame(1000, $config->timeout);
+        $this->assertSame('test_api_key', $config->getApiKey());
+        $this->assertSame('https://custom.url', $config->getApiUrl());
+        $this->assertSame('http://proxy:8080', $config->getProxy());
+        $this->assertSame(1000, $config->getTimeout());
+        $this->assertSame(0, $config->getFlags());
     }
 
     /**
-     * Test the fromArray method sets the properties correctly
      * @covers ::fromArray
-     * @return void
-     * @throws PerfbaseInvalidConfigException
+     * @covers ::getApiKey
+     * @covers ::getApiUrl
      */
     public function testFromArray(): void
     {
@@ -45,12 +47,12 @@ class ConfigTest extends BaseTest
             'api_key' => 'array_api_key',
             'api_url' => 'https://array.url',
         ]);
-        $this->assertSame('array_api_key', $config->api_key);
-        $this->assertSame('https://array.url', $config->api_url);
+
+        $this->assertSame('array_api_key', $config->getApiKey());
+        $this->assertSame('https://array.url', $config->getApiUrl());
     }
 
     /**
-     * @return void
      * @covers ::new
      */
     public function testThrowsExceptionIfApiKeyIsMissing(): void
@@ -60,17 +62,15 @@ class ConfigTest extends BaseTest
     }
 
     /**
-     * @return void
      * @covers ::new
      */
     public function testThrowsExceptionIfApiKeyIsNull(): void
     {
         $this->expectException(PerfbaseInvalidConfigException::class);
-        Config::new(null, 0, 'http://example.com');
+        Config::new(null, 0, 'https://example.com');
     }
 
     /**
-     * @return void
      * @covers ::new
      */
     public function testThrowsExceptionIfUrlIsBlank(): void
@@ -80,7 +80,6 @@ class ConfigTest extends BaseTest
     }
 
     /**
-     * @return void
      * @covers ::new
      */
     public function testThrowsExceptionIfUrlIsInvalid(): void
@@ -90,7 +89,16 @@ class ConfigTest extends BaseTest
     }
 
     /**
-     * @return void
+     * @covers ::new
+     */
+    public function testThrowsExceptionIfApiUrlIsNotHttps(): void
+    {
+        $this->expectException(PerfbaseInvalidConfigException::class);
+        $this->expectExceptionMessage('API URL must use HTTPS');
+        Config::new('abc123', 0, 'http://example.com');
+    }
+
+    /**
      * @covers ::new
      */
     public function testThrowsExceptionIfFlagsInvalidTooLow(): void
@@ -100,7 +108,6 @@ class ConfigTest extends BaseTest
     }
 
     /**
-     * @return void
      * @covers ::new
      */
     public function testThrowsExceptionIfFlagsInvalidTooHigh(): void
@@ -141,6 +148,79 @@ class ConfigTest extends BaseTest
     /**
      * @covers ::fromArray
      */
+    public function testFromArrayThrowsOnInvalidTimeoutType(): void
+    {
+        $this->expectException(PerfbaseInvalidConfigException::class);
+        $this->expectExceptionMessage('Configuration option "timeout" must be an integer');
+        Config::fromArray(['api_key' => 'test', 'timeout' => '12']);
+    }
+
+    /**
+     * @covers ::fromArray
+     */
+    public function testFromArrayThrowsOnInvalidApiUrlType(): void
+    {
+        $this->expectException(PerfbaseInvalidConfigException::class);
+        $this->expectExceptionMessage('Configuration option "api_url" must be a string');
+        Config::fromArray(['api_key' => 'test', 'api_url' => null]);
+    }
+
+    /**
+     * @covers ::fromArray
+     */
+    public function testFromArrayThrowsOnInvalidFlagsType(): void
+    {
+        $this->expectException(PerfbaseInvalidConfigException::class);
+        $this->expectExceptionMessage('Configuration option "flags" must be an integer');
+        Config::fromArray(['api_key' => 'test', 'flags' => [1, 2, 3]]);
+    }
+
+    /**
+     * @covers ::fromArray
+     */
+    public function testFromArrayThrowsOnInvalidProxyType(): void
+    {
+        $this->expectException(PerfbaseInvalidConfigException::class);
+        $this->expectExceptionMessage('Configuration option "proxy" must be a string');
+        Config::fromArray(['api_key' => 'test', 'proxy' => ['bad']]);
+    }
+
+    /**
+     * @covers ::fromArray
+     */
+    public function testFromArrayThrowsOnInvalidProxyUrl(): void
+    {
+        $this->expectException(PerfbaseInvalidConfigException::class);
+        $this->expectExceptionMessage('Proxy URL is not valid');
+        Config::fromArray(['api_key' => 'test', 'proxy' => 'not a url']);
+    }
+
+    /**
+     * @covers ::fromArray
+     */
+    public function testFromArrayThrowsOnUnsupportedProxyScheme(): void
+    {
+        $this->expectException(PerfbaseInvalidConfigException::class);
+        $this->expectExceptionMessage('Proxy URL must use http, https, socks5, or socks5h');
+        Config::fromArray(['api_key' => 'test', 'proxy' => 'ftp://proxy.example.com:21']);
+    }
+
+    /**
+     * @covers ::fromArray
+     */
+    public function testFromArrayAcceptsSupportedProxySchemes(): void
+    {
+        $httpConfig = Config::fromArray(['api_key' => 'test', 'proxy' => 'http://proxy.example.com:8080']);
+        $socksConfig = Config::fromArray(['api_key' => 'test', 'proxy' => 'socks5h://proxy.example.com:1080']);
+
+        $this->assertSame('http://proxy.example.com:8080', $httpConfig->getProxy());
+        $this->assertSame('socks5h://proxy.example.com:1080', $socksConfig->getProxy());
+    }
+
+    /**
+     * @covers ::fromArray
+     * @covers ::getFlags
+     */
     public function testFromArrayWithAllOptions(): void
     {
         $config = Config::fromArray([
@@ -151,11 +231,11 @@ class ConfigTest extends BaseTest
             'flags' => FeatureFlags::TrackCpuTime | FeatureFlags::TrackPdo,
         ]);
 
-        $this->assertSame('my-key', $config->api_key);
-        $this->assertSame('https://custom.api.com', $config->api_url);
-        $this->assertSame('http://proxy:8080', $config->proxy);
-        $this->assertSame(30, $config->timeout);
-        $this->assertSame(FeatureFlags::TrackCpuTime | FeatureFlags::TrackPdo, $config->flags);
+        $this->assertSame('my-key', $config->getApiKey());
+        $this->assertSame('https://custom.api.com', $config->getApiUrl());
+        $this->assertSame('http://proxy:8080', $config->getProxy());
+        $this->assertSame(30, $config->getTimeout());
+        $this->assertSame(FeatureFlags::TrackCpuTime | FeatureFlags::TrackPdo, $config->getFlags());
     }
 
     /**
@@ -165,11 +245,24 @@ class ConfigTest extends BaseTest
     {
         $config = Config::new('my-key');
 
-        $this->assertSame('my-key', $config->api_key);
-        $this->assertSame('https://ingress.perfbase.cloud', $config->api_url);
-        $this->assertNull($config->proxy);
-        $this->assertSame(10, $config->timeout);
-        $this->assertSame(FeatureFlags::DefaultFlags, $config->flags);
+        $this->assertSame('my-key', $config->getApiKey());
+        $this->assertSame('https://ingress.perfbase.cloud', $config->getApiUrl());
+        $this->assertNull($config->getProxy());
+        $this->assertSame(10, $config->getTimeout());
+        $this->assertSame(FeatureFlags::DefaultFlags, $config->getFlags());
     }
 
+    /**
+     * @covers ::withFlags
+     * @covers ::getFlags
+     */
+    public function testWithFlagsReturnsUpdatedClone(): void
+    {
+        $config = Config::new('my-key');
+        $updated = $config->withFlags(FeatureFlags::TrackCpuTime);
+
+        $this->assertNotSame($config, $updated);
+        $this->assertSame(FeatureFlags::DefaultFlags, $config->getFlags());
+        $this->assertSame(FeatureFlags::TrackCpuTime, $updated->getFlags());
+    }
 }

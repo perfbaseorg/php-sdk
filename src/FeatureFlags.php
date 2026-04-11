@@ -79,8 +79,8 @@ class FeatureFlags
     public const TrackFileDefinitions = 1 << 5;
 
     /**
-     * TTracks PDO database operations during profiling.
-     *  This includes queries + execution times, but not results.
+     * Tracks PDO database operations during profiling.
+     * This includes queries + execution times, but not results.
      */
     public const TrackPdo = 1 << 6;
 

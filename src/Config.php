@@ -18,13 +18,13 @@ class Config
      * The API key to use for authenticating with the Perfbase API
      * @var string|null
      */
-    public ?string $api_key = null;
+    private ?string $api_key = null;
 
     /**
      * Base URL for the Perfbase API
      * @var string
      */
-    public string $api_url = 'https://ingress.perfbase.cloud';
+    private string $api_url = 'https://ingress.perfbase.cloud';
 
     /**
      * Proxy server to use for connecting to the Perfbase API
@@ -32,20 +32,20 @@ class Config
      * Eg: http://username:password@proxy.example.com:8080
      * @var string|null
      */
-    public ?string $proxy = null;
+    private ?string $proxy = null;
 
     /**
      * Timeout for API requests in seconds
      * Default: 10 seconds
      * @var int
      */
-    public int $timeout = 10;
+    private int $timeout = 10;
 
     /**
      * The features to utilise while profiling
      * @var int
      */
-    public int $flags = FeatureFlags::DefaultFlags;
+    private int $flags = FeatureFlags::DefaultFlags;
 
     /**
      * @param string|null $api_key
@@ -103,30 +103,11 @@ class Config
 
     public function validate(): void
     {
-        // Check if API key is missing
-        if (empty($this->api_key)) {
-            throw new PerfbaseInvalidConfigException('API key is required');
-        }
-
-        // Check if API key is a valid string
-        if (empty($this->api_url)) {
-            throw new PerfbaseInvalidConfigException('API URL is required');
-        }
-
-        // Check if API url is a valid URL
-        if (!filter_var($this->api_url, FILTER_VALIDATE_URL)) {
-            throw new PerfbaseInvalidConfigException('API URL is not valid');
-        }
-
-        // Check if proxy is a valid URL
-        if ($this->timeout <= 0) {
-            throw new PerfbaseInvalidConfigException('Timeout must be a positive integer');
-        }
-
-        // Check if flags are invalid
-        if ($this->flags < 0 || $this->flags > FeatureFlags::AllFlags) {
-            throw new PerfbaseInvalidConfigException('Invalid flags value');
-        }
+        self::assertValidApiKey($this->api_key);
+        self::assertValidApiUrl($this->api_url);
+        self::assertValidProxy($this->proxy);
+        self::assertValidTimeout($this->timeout);
+        self::assertValidFlags($this->flags);
     }
 
     /**
@@ -143,6 +124,8 @@ class Config
             if (!property_exists($instance, $key)) {
                 throw new PerfbaseInvalidConfigException(sprintf('Invalid configuration option: %s', $key));
             }
+
+            self::assertValidPropertyType($key, $value);
             $instance->$key = $value;
         }
 
@@ -150,5 +133,142 @@ class Config
         $instance->validate();
 
         return $instance;
+    }
+
+    public function getApiKey(): ?string
+    {
+        return $this->api_key;
+    }
+
+    public function getApiUrl(): string
+    {
+        return $this->api_url;
+    }
+
+    public function getProxy(): ?string
+    {
+        return $this->proxy;
+    }
+
+    public function getTimeout(): int
+    {
+        return $this->timeout;
+    }
+
+    public function getFlags(): int
+    {
+        return $this->flags;
+    }
+
+    /**
+     * @throws PerfbaseInvalidConfigException
+     */
+    public function withFlags(int $flags): self
+    {
+        self::assertValidFlags($flags);
+
+        $clone = clone $this;
+        $clone->flags = $flags;
+
+        return $clone;
+    }
+
+    /**
+     * @param mixed $value
+     * @throws PerfbaseInvalidConfigException
+     */
+    private static function assertValidPropertyType(string $key, $value): void
+    {
+        if ($key === 'api_key' || $key === 'proxy') {
+            if (!is_string($value) && $value !== null) {
+                throw new PerfbaseInvalidConfigException(sprintf('Configuration option "%s" must be a string', $key));
+            }
+
+            return;
+        }
+
+        if ($key === 'api_url') {
+            if (!is_string($value)) {
+                throw new PerfbaseInvalidConfigException('Configuration option "api_url" must be a string');
+            }
+
+            return;
+        }
+
+        if ($key === 'timeout' || $key === 'flags') {
+            if (!is_int($value)) {
+                throw new PerfbaseInvalidConfigException(sprintf('Configuration option "%s" must be an integer', $key));
+            }
+        }
+    }
+
+    /**
+     * @throws PerfbaseInvalidConfigException
+     */
+    private static function assertValidApiKey(?string $apiKey): void
+    {
+        if ($apiKey === null || trim($apiKey) === '') {
+            throw new PerfbaseInvalidConfigException('API key is required');
+        }
+    }
+
+    /**
+     * @throws PerfbaseInvalidConfigException
+     */
+    private static function assertValidApiUrl(string $apiUrl): void
+    {
+        if (trim($apiUrl) === '') {
+            throw new PerfbaseInvalidConfigException('API URL is required');
+        }
+
+        if (!filter_var($apiUrl, FILTER_VALIDATE_URL)) {
+            throw new PerfbaseInvalidConfigException('API URL is not valid');
+        }
+
+        $scheme = parse_url($apiUrl, PHP_URL_SCHEME);
+        if (!is_string($scheme) || strtolower($scheme) !== 'https') {
+            throw new PerfbaseInvalidConfigException('API URL must use HTTPS');
+        }
+    }
+
+    /**
+     * @throws PerfbaseInvalidConfigException
+     */
+    private static function assertValidProxy(?string $proxy): void
+    {
+        if ($proxy === null) {
+            return;
+        }
+
+        if (!filter_var($proxy, FILTER_VALIDATE_URL)) {
+            throw new PerfbaseInvalidConfigException('Proxy URL is not valid');
+        }
+
+        $scheme = parse_url($proxy, PHP_URL_SCHEME);
+        $allowedSchemes = ['http', 'https', 'socks5', 'socks5h'];
+
+        if (!is_string($scheme) || !in_array(strtolower($scheme), $allowedSchemes, true)) {
+            throw new PerfbaseInvalidConfigException('Proxy URL must use http, https, socks5, or socks5h');
+        }
+    }
+
+    /**
+     * @throws PerfbaseInvalidConfigException
+     */
+    private static function assertValidTimeout(int $timeout): void
+    {
+        if ($timeout <= 0) {
+            throw new PerfbaseInvalidConfigException('Timeout must be a positive integer');
+        }
+    }
+
+    /**
+     * @throws PerfbaseInvalidConfigException
+     */
+    private static function assertValidFlags(int $flags): void
+    {
+        if ($flags < 0 || $flags > FeatureFlags::AllFlags) {
+            throw new PerfbaseInvalidConfigException('Invalid flags value');
+        }
     }
 }

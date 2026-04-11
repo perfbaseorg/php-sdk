@@ -27,8 +27,13 @@ interface ExtensionInterface
     public function stopSpan(string $spanName): void;
 
     /**
-     * Retrieves the collected profiling data for a span
-     * @param string $spanName The name of the span, or empty for all data
+     * Retrieves the collected profiling data for the current trace.
+     *
+     * The current extension only supports whole-trace retrieval. The parameter
+     * remains for backwards compatibility and should be left empty.
+     *
+     * @param string $spanName The span name. Must be empty with the current extension.
+     * @deprecated The current extension only supports whole-trace retrieval.
      * @return string
      */
     public function getSpanData(string $spanName = ''): string;

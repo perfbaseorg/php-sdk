@@ -36,10 +36,6 @@ class ExtensionUtils
      */
     public static function perfbaseExtensionLoaded(): bool
     {
-        if (!extension_loaded('perfbase')) {
-            return false;
-        }
-
-        return true;
+        return extension_loaded('perfbase');
     }
 }

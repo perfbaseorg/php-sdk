@@ -9,122 +9,45 @@ use Perfbase\SDK\Exception\PerfbaseInvalidSpanException;
 use Perfbase\SDK\Tests\BaseTest;
 
 /**
- * Test all Perfbase exceptions
+ * @coversDefaultClass \Perfbase\SDK\Exception\PerfbaseException
  */
 class PerfbaseExceptionTest extends BaseTest
 {
     /**
-     * @covers \Perfbase\SDK\Exception\PerfbaseException::__construct
+     * @covers ::__construct
      */
-    public function testPerfbaseExceptionWithMessage(): void
+    public function testPerfbaseExceptionPreservesCodeAndPreviousException(): void
     {
-        $message = 'Test exception message';
-        $exception = new PerfbaseException($message);
-        
-        $this->assertInstanceOf(\Exception::class, $exception);
-        $this->assertEquals($message, $exception->getMessage());
+        $previous = new \RuntimeException('previous');
+        $exception = new PerfbaseException('message', 42, $previous);
+
+        $this->assertSame('message', $exception->getMessage());
+        $this->assertSame(42, $exception->getCode());
+        $this->assertSame($previous, $exception->getPrevious());
     }
 
     /**
-     * @covers \Perfbase\SDK\Exception\PerfbaseException::__construct
-     */
-    public function testPerfbaseExceptionWithEmptyMessage(): void
-    {
-        $exception = new PerfbaseException();
-        
-        $this->assertInstanceOf(\Exception::class, $exception);
-        $this->assertEquals('', $exception->getMessage());
-    }
-
-    /**
-     * Test PerfbaseExtensionException
      * @covers \Perfbase\SDK\Exception\PerfbaseExtensionException::__construct
-     */
-    public function testPerfbaseExtensionException(): void
-    {
-        $message = 'Extension not loaded';
-        $exception = new PerfbaseExtensionException($message);
-        
-        $this->assertInstanceOf(PerfbaseException::class, $exception);
-        $this->assertInstanceOf(\Exception::class, $exception);
-        $this->assertEquals($message, $exception->getMessage());
-    }
-
-    /**
-     * Test PerfbaseInvalidConfigException
      * @covers \Perfbase\SDK\Exception\PerfbaseInvalidConfigException::__construct
-     */
-    public function testPerfbaseInvalidConfigException(): void
-    {
-        $message = 'Invalid configuration';
-        $exception = new PerfbaseInvalidConfigException($message);
-        
-        $this->assertInstanceOf(PerfbaseException::class, $exception);
-        $this->assertInstanceOf(\Exception::class, $exception);
-        $this->assertEquals($message, $exception->getMessage());
-    }
-
-    /**
-     * Test PerfbaseInvalidSpanException
      * @covers \Perfbase\SDK\Exception\PerfbaseInvalidSpanException::__construct
      */
-    public function testPerfbaseInvalidSpanException(): void
+    public function testSpecializedExceptionsInheritPerfbaseExceptionBehavior(): void
     {
-        $message = 'Invalid span name';
-        $exception = new PerfbaseInvalidSpanException($message);
-        
-        $this->assertInstanceOf(PerfbaseException::class, $exception);
-        $this->assertInstanceOf(\Exception::class, $exception);
-        $this->assertEquals($message, $exception->getMessage());
-    }
+        $previous = new \RuntimeException('previous');
 
-    /**
-     * Test exception inheritance hierarchy
-     * @covers \Perfbase\SDK\Exception\PerfbaseException
-     */
-    public function testExceptionInheritanceHierarchy(): void
-    {
-        $baseException = new PerfbaseException('Base');
-        $extensionException = new PerfbaseExtensionException('Extension');
-        $configException = new PerfbaseInvalidConfigException('Config');
-        $spanException = new PerfbaseInvalidSpanException('Span');
-        
-        // All should inherit from PerfbaseException
+        $extensionException = new PerfbaseExtensionException('extension', 10, $previous);
+        $configException = new PerfbaseInvalidConfigException('config', 11, $previous);
+        $spanException = new PerfbaseInvalidSpanException('span', 12, $previous);
+
         $this->assertInstanceOf(PerfbaseException::class, $extensionException);
         $this->assertInstanceOf(PerfbaseException::class, $configException);
         $this->assertInstanceOf(PerfbaseException::class, $spanException);
-        
-        // All should inherit from base Exception
-        $this->assertInstanceOf(\Exception::class, $baseException);
-        $this->assertInstanceOf(\Exception::class, $extensionException);
-        $this->assertInstanceOf(\Exception::class, $configException);
-        $this->assertInstanceOf(\Exception::class, $spanException);
-    }
 
-    /**
-     * Test that exceptions can be caught by their parent type
-     * @covers \Perfbase\SDK\Exception\PerfbaseException
-     */
-    public function testExceptionCanBeCaughtByParentType(): void
-    {
-        $caughtAsPerfbaseException = false;
-        $caughtAsBaseException = false;
-        
-        try {
-            throw new PerfbaseInvalidSpanException('Test span error');
-        } catch (PerfbaseException $e) {
-            $caughtAsPerfbaseException = true;
-            $this->assertEquals('Test span error', $e->getMessage());
-        }
-        
-        try {
-            throw new PerfbaseExtensionException('Test extension error');
-        } catch (\Exception $e) {
-            $caughtAsBaseException = true;
-            $this->assertEquals('Test extension error', $e->getMessage());
-        }
-        
-        $this->assertTrue($caughtAsPerfbaseException);
-        $this->assertTrue($caughtAsBaseException);
+        $this->assertSame(10, $extensionException->getCode());
+        $this->assertSame(11, $configException->getCode());
+        $this->assertSame(12, $spanException->getCode());
+        $this->assertSame($previous, $extensionException->getPrevious());
+        $this->assertSame($previous, $configException->getPrevious());
+        $this->assertSame($previous, $spanException->getPrevious());
     }
 }

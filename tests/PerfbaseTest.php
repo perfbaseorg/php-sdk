@@ -75,7 +75,7 @@ class PerfbaseTest extends BaseTest
     public function testStartTraceSpanWithValidName(): void
     {
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
-        $this->mockExtension->shouldReceive('startSpan')->once()->with('test-span', $this->config->flags, []);
+        $this->mockExtension->shouldReceive('startSpan')->once()->with('test-span', $this->config->getFlags(), []);
         $this->mockExtension->shouldReceive('reset')->once(); // Called by destructor
 
         $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
@@ -94,7 +94,7 @@ class PerfbaseTest extends BaseTest
     public function testStartTraceSpanWithEmptyNameUsesDefault(): void
     {
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
-        $this->mockExtension->shouldReceive('startSpan')->once()->with('default', $this->config->flags, []);
+        $this->mockExtension->shouldReceive('startSpan')->once()->with('default', $this->config->getFlags(), []);
         $this->mockExtension->shouldReceive('reset')->once(); // Called by destructor
 
         $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
@@ -111,7 +111,7 @@ class PerfbaseTest extends BaseTest
     public function testStartTraceSpanWarnsWhenSpanAlreadyActive(): void
     {
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
-        $this->mockExtension->shouldReceive('startSpan')->once()->with('test-span', $this->config->flags, []);
+        $this->mockExtension->shouldReceive('startSpan')->once()->with('test-span', $this->config->getFlags(), []);
         $this->mockExtension->shouldReceive('reset')->once(); // Called by destructor
 
         $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
@@ -150,7 +150,7 @@ class PerfbaseTest extends BaseTest
     public function testStopTraceSpanWhenActive(): void
     {
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
-        $this->mockExtension->shouldReceive('startSpan')->once()->with('test-span', $this->config->flags, []);
+        $this->mockExtension->shouldReceive('startSpan')->once()->with('test-span', $this->config->getFlags(), []);
         $this->mockExtension->shouldReceive('stopSpan')->once()->with('test-span');
         $this->mockExtension->shouldReceive('reset')->once(); // Called by destructor
 
@@ -195,7 +195,21 @@ class PerfbaseTest extends BaseTest
         $perfbase->setFlags(1024);
 
         $config = $this->getPrivateFieldValue($perfbase, 'config');
-        $this->assertEquals(1024, $config->flags);
+        $this->assertEquals(1024, $config->getFlags());
+    }
+
+    /**
+     * @covers ::setFlags
+     */
+    public function testSetFlagsThrowsWhenFlagsInvalid(): void
+    {
+        $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
+        $this->mockExtension->shouldReceive('reset')->once();
+
+        $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
+
+        $this->expectException(\Perfbase\SDK\Exception\PerfbaseInvalidConfigException::class);
+        $perfbase->setFlags(-1);
     }
 
     /**
@@ -212,6 +226,22 @@ class PerfbaseTest extends BaseTest
         $result = $perfbase->getTraceData();
 
         $this->assertEquals('trace-data', $result);
+    }
+
+    /**
+     * @covers ::getTraceData
+     */
+    public function testGetTraceDataThrowsWhenSpanSpecificDataRequested(): void
+    {
+        $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
+        $this->mockExtension->shouldReceive('getSpanData')->never();
+        $this->mockExtension->shouldReceive('reset')->once();
+
+        $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
+
+        $this->expectException(PerfbaseException::class);
+        $this->expectExceptionMessage('Span-specific trace data retrieval is not supported');
+        $perfbase->getTraceData('some-span');
     }
 
     /**
@@ -269,7 +299,7 @@ class PerfbaseTest extends BaseTest
     public function testReset(): void
     {
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
-        $this->mockExtension->shouldReceive('startSpan')->once()->with('test-span', $this->config->flags, []);
+        $this->mockExtension->shouldReceive('startSpan')->once()->with('test-span', $this->config->getFlags(), []);
         $this->mockExtension->shouldReceive('reset')->twice(); // Called manually and by destructor
 
         $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
@@ -368,7 +398,7 @@ class PerfbaseTest extends BaseTest
     {
         $attrs = ['key1' => 'val1', 'key2' => 'val2'];
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
-        $this->mockExtension->shouldReceive('startSpan')->once()->with('my-span', $this->config->flags, $attrs);
+        $this->mockExtension->shouldReceive('startSpan')->once()->with('my-span', $this->config->getFlags(), $attrs);
         $this->mockExtension->shouldReceive('reset')->once();
 
         $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
@@ -384,7 +414,7 @@ class PerfbaseTest extends BaseTest
     public function testStopTraceSpanWithEmptyNameUsesDefault(): void
     {
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
-        $this->mockExtension->shouldReceive('startSpan')->once()->with('default', $this->config->flags, []);
+        $this->mockExtension->shouldReceive('startSpan')->once()->with('default', $this->config->getFlags(), []);
         $this->mockExtension->shouldReceive('stopSpan')->once()->with('default');
         $this->mockExtension->shouldReceive('reset')->once();
 
@@ -422,5 +452,34 @@ class PerfbaseTest extends BaseTest
 
         $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
         $this->assertFalse($perfbase->isExtensionAvailable());
+    }
+
+    /**
+     * @covers ::startTraceSpan
+     */
+    public function testStartTraceSpanThrowsWhenSpanNameInvalid(): void
+    {
+        $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
+        $this->mockExtension->shouldReceive('startSpan')->never();
+        $this->mockExtension->shouldReceive('reset')->once();
+
+        $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
+
+        $this->expectException(PerfbaseInvalidSpanException::class);
+        $perfbase->startTraceSpan('bad/span');
+    }
+
+    /**
+     * @covers ::stopTraceSpan
+     */
+    public function testStopTraceSpanThrowsWhenSpanNameInvalid(): void
+    {
+        $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
+        $this->mockExtension->shouldReceive('reset')->once();
+
+        $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
+
+        $this->expectException(PerfbaseInvalidSpanException::class);
+        $perfbase->stopTraceSpan('bad/span');
     }
 }

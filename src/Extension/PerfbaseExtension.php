@@ -6,18 +6,9 @@ use Perfbase\SDK\Utils\ExtensionUtils;
 
 class PerfbaseExtension implements ExtensionInterface
 {
-    /**
-     * @var bool|null Cached availability status
-     */
-    private static ?bool $available = null;
-
     public function isAvailable(): bool
     {
-        if (self::$available === null) {
-            self::$available = ExtensionUtils::perfbaseExtensionLoaded() && ExtensionUtils::perfbaseMethodsAvailable();
-        }
-        
-        return self::$available;
+        return ExtensionUtils::perfbaseExtensionLoaded() && ExtensionUtils::perfbaseMethodsAvailable();
     }
 
     /**
@@ -42,6 +33,7 @@ class PerfbaseExtension implements ExtensionInterface
 
     public function getSpanData(string $spanName = ''): string
     {
+        // The current extension only supports retrieving the full trace payload.
         return perfbase_get_data();
     }
 

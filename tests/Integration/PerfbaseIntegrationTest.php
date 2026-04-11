@@ -54,7 +54,7 @@ class PerfbaseIntegrationTest extends BaseTest
     public function testCompleteProfilingWorkflow(): void
     {
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
-        $this->mockExtension->shouldReceive('startSpan')->once()->with('integration-span', $this->config->flags, []);
+        $this->mockExtension->shouldReceive('startSpan')->once()->with('integration-span', $this->config->getFlags(), []);
         $this->mockExtension->shouldReceive('stopSpan')->once()->with('integration-span');
         $this->mockExtension->shouldReceive('getSpanData')->twice()->andReturn(self::EXTENSION_BYTES);
         $this->mockExtension->shouldReceive('getVersion')->once()->andReturn(1);
@@ -84,9 +84,9 @@ class PerfbaseIntegrationTest extends BaseTest
     public function testMultipleSpansWorkflow(): void
     {
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
-        $this->mockExtension->shouldReceive('startSpan')->once()->with('span-1', $this->config->flags, []);
+        $this->mockExtension->shouldReceive('startSpan')->once()->with('span-1', $this->config->getFlags(), []);
         $this->mockExtension->shouldReceive('stopSpan')->once()->with('span-1');
-        $this->mockExtension->shouldReceive('startSpan')->once()->with('span-2', $this->config->flags, []);
+        $this->mockExtension->shouldReceive('startSpan')->once()->with('span-2', $this->config->getFlags(), []);
         $this->mockExtension->shouldReceive('stopSpan')->once()->with('span-2');
         $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn(self::EXTENSION_BYTES);
         $this->mockExtension->shouldReceive('getVersion')->once()->andReturn(1);
@@ -113,7 +113,7 @@ class PerfbaseIntegrationTest extends BaseTest
     public function testWorkflowWithConfigurationChanges(): void
     {
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
-        $this->mockExtension->shouldReceive('startSpan')->once()->with('config-span', $this->config->flags, []);
+        $this->mockExtension->shouldReceive('startSpan')->once()->with('config-span', $this->config->getFlags(), []);
 
         $newFlags = 2048;
         $this->mockExtension->shouldReceive('startSpan')->once()->with('modified-span', $newFlags, []);
@@ -145,7 +145,7 @@ class PerfbaseIntegrationTest extends BaseTest
     public function testErrorHandlingInWorkflow(): void
     {
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
-        $this->mockExtension->shouldReceive('startSpan')->once()->with('error-span', $this->config->flags, []);
+        $this->mockExtension->shouldReceive('startSpan')->once()->with('error-span', $this->config->getFlags(), []);
         $this->mockExtension->shouldReceive('reset')->once();
 
         $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
@@ -189,7 +189,7 @@ class PerfbaseIntegrationTest extends BaseTest
     public function testFullStackIntegration(): void
     {
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
-        $this->mockExtension->shouldReceive('startSpan')->once()->with('full-stack', $this->config->flags, []);
+        $this->mockExtension->shouldReceive('startSpan')->once()->with('full-stack', $this->config->getFlags(), []);
         $this->mockExtension->shouldReceive('stopSpan')->once()->with('full-stack');
         $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn(self::EXTENSION_BYTES);
         $this->mockExtension->shouldReceive('getVersion')->once()->andReturn(1);
@@ -249,7 +249,7 @@ class PerfbaseIntegrationTest extends BaseTest
     public function testCleanupBehavior(): void
     {
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
-        $this->mockExtension->shouldReceive('startSpan')->once()->with('cleanup-span', $this->config->flags, []);
+        $this->mockExtension->shouldReceive('startSpan')->once()->with('cleanup-span', $this->config->getFlags(), []);
         $this->mockExtension->shouldReceive('reset')->twice();
 
         $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);

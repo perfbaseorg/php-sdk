@@ -12,28 +12,40 @@ class EnvironmentUtils
     {
         // Common headers set by proxies/CDNs.
         $headersToCheck = [
-            'CF-Connecting-IP',
-            'Fastly-Client-IP',
-            'True-Client-IP',
-            'X-Forwarded-For', // If multiple IPs, the first one is usually the actual client.
-            'X-Real-IP',
+            'HTTP_CF_CONNECTING_IP',
+            'HTTP_FASTLY_CLIENT_IP',
+            'HTTP_TRUE_CLIENT_IP',
+            'HTTP_X_FORWARDED_FOR', // If multiple IPs, the first valid one is usually the actual client.
+            'HTTP_X_REAL_IP',
         ];
 
         // Check each header in order of priority.
         foreach ($headersToCheck as $header) {
             if (!empty($_SERVER[$header]) && is_string($_SERVER[$header])) {
-                if ($header === 'X-Forwarded-For') {
+                if ($header === 'HTTP_X_FORWARDED_FOR') {
                     // "X-Forwarded-For" can be a comma-separated list of IPs.
-                    return trim(explode(',', $_SERVER[$header])[0]);
+                    $candidates = array_map('trim', explode(',', $_SERVER[$header]));
+
+                    foreach ($candidates as $candidate) {
+                        if (filter_var($candidate, FILTER_VALIDATE_IP) !== false) {
+                            return $candidate;
+                        }
+                    }
+
+                    continue;
                 }
 
-                return $_SERVER[$header];
+                if (filter_var($_SERVER[$header], FILTER_VALIDATE_IP) !== false) {
+                    return $_SERVER[$header];
+                }
             }
         }
 
         // Fallback to REMOTE_ADDR if none of the above headers are set.
         if (isset($_SERVER['REMOTE_ADDR']) && is_string($_SERVER['REMOTE_ADDR'])) {
-            return $_SERVER['REMOTE_ADDR'];
+            if (filter_var($_SERVER['REMOTE_ADDR'], FILTER_VALIDATE_IP) !== false) {
+                return $_SERVER['REMOTE_ADDR'];
+            }
         }
 
         // No IP address found
