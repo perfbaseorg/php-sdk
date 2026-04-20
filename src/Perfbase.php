@@ -168,6 +168,13 @@ class Perfbase
      */
     public function submitTrace(): SubmitResult
     {
+        // Snapshot the combined feature flags before reading the trace
+        // data — the UI uses this to explain missing columns (zero CPU
+        // times, coarse-clock quantized wall times, etc). Attached as a
+        // regular trace attribute so it rides along in the MessagePack
+        // payload's `a` block; the receiver parses it back to an int.
+        $this->extension->setAttribute('feature_flags', (string) $this->extension->getFlags());
+
         $traceData = $this->getTraceData();
 
         if ($traceData === '') {

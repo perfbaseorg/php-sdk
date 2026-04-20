@@ -78,3 +78,18 @@ if (!function_exists('perfbase_get_version')) {
         return 1;
     }
 }
+
+if (!function_exists('perfbase_get_flags')) {
+    /**
+     * Returns the bitwise OR of feature flags across every span held by
+     * the profiler (active + draining + disabled-but-still-retained).
+     * Returns 0 when no spans have been enabled since the last reset.
+     *
+     * @return int
+     */
+    function perfbase_get_flags(): int
+    {
+        // Stub only—no implementation needed
+        return 0;
+    }
+}

@@ -46,6 +46,17 @@ interface ExtensionInterface
     public function getVersion(): int;
 
     /**
+     * Returns the bitwise OR of feature flags across every span held by
+     * the profiler (active + draining + disabled-but-still-retained).
+     * Used to annotate the outgoing trace so the UI can explain missing
+     * columns (e.g. zero CPU times because `PERFBASE_FLAG_CPU_TIME`
+     * wasn't enabled).
+     *
+     * @return int
+     */
+    public function getFlags(): int;
+
+    /**
      * Sets an attribute for a specific span
      * @param string $key
      * @param string $value

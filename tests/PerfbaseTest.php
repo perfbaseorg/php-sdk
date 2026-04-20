@@ -252,6 +252,8 @@ class PerfbaseTest extends BaseTest
     {
         $extensionData = 'test-binary-data';
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
+        $this->mockExtension->shouldReceive('getFlags')->once()->andReturn(0);
+        $this->mockExtension->shouldReceive('setAttribute')->once()->with('feature_flags', '0');
         $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn($extensionData);
         $this->mockExtension->shouldReceive('getVersion')->once()->andReturn(1);
         $this->mockExtension->shouldReceive('reset')->twice(); // Called by submitTrace and destructor
@@ -274,6 +276,8 @@ class PerfbaseTest extends BaseTest
         $extensionData = 'test-binary-data';
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
         $this->mockExtension->shouldReceive('startSpan')->once();
+        $this->mockExtension->shouldReceive('getFlags')->once()->andReturn(0);
+        $this->mockExtension->shouldReceive('setAttribute')->once()->with('feature_flags', '0');
         $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn($extensionData);
         $this->mockExtension->shouldReceive('getVersion')->once()->andReturn(1);
         $this->mockExtension->shouldReceive('reset')->once(); // Only destructor, NOT submitTrace
@@ -347,6 +351,8 @@ class PerfbaseTest extends BaseTest
     public function testSubmitTraceThrowsWhenExtensionReturnsInvalidVersion(): void
     {
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
+        $this->mockExtension->shouldReceive('getFlags')->once()->andReturn(0);
+        $this->mockExtension->shouldReceive('setAttribute')->once()->with('feature_flags', '0');
         $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn('binary-data');
         $this->mockExtension->shouldReceive('getVersion')->once()->andReturn(0);
         $this->mockExtension->shouldReceive('reset')->once(); // destructor
@@ -364,6 +370,8 @@ class PerfbaseTest extends BaseTest
     public function testSubmitTraceThrowsWhenExtensionReturnsEmpty(): void
     {
         $this->mockExtension->shouldReceive('isAvailable')->once()->andReturn(true);
+        $this->mockExtension->shouldReceive('getFlags')->once()->andReturn(0);
+        $this->mockExtension->shouldReceive('setAttribute')->once()->with('feature_flags', '0');
         $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn('');
         $this->mockExtension->shouldReceive('getVersion')->never();
         $this->mockExtension->shouldReceive('reset')->once(); // destructor

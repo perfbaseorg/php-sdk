@@ -57,6 +57,8 @@ class PerfbaseIntegrationTest extends BaseTest
         $this->mockExtension->shouldReceive('startSpan')->once()->with('integration-span', $this->config->getFlags(), []);
         $this->mockExtension->shouldReceive('stopSpan')->once()->with('integration-span');
         $this->mockExtension->shouldReceive('getSpanData')->twice()->andReturn(self::EXTENSION_BYTES);
+        $this->mockExtension->shouldReceive('getFlags')->once()->andReturn(0);
+        $this->mockExtension->shouldReceive('setAttribute')->once()->with('feature_flags', '0');
         $this->mockExtension->shouldReceive('getVersion')->once()->andReturn(1);
         $this->mockExtension->shouldReceive('reset')->twice();
 
@@ -89,6 +91,8 @@ class PerfbaseIntegrationTest extends BaseTest
         $this->mockExtension->shouldReceive('startSpan')->once()->with('span-2', $this->config->getFlags(), []);
         $this->mockExtension->shouldReceive('stopSpan')->once()->with('span-2');
         $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn(self::EXTENSION_BYTES);
+        $this->mockExtension->shouldReceive('getFlags')->once()->andReturn(0);
+        $this->mockExtension->shouldReceive('setAttribute')->once()->with('feature_flags', '0');
         $this->mockExtension->shouldReceive('getVersion')->once()->andReturn(1);
         $this->mockExtension->shouldReceive('reset')->twice();
 
@@ -120,6 +124,8 @@ class PerfbaseIntegrationTest extends BaseTest
         $this->mockExtension->shouldReceive('stopSpan')->once()->with('config-span');
         $this->mockExtension->shouldReceive('stopSpan')->once()->with('modified-span');
         $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn(self::EXTENSION_BYTES);
+        $this->mockExtension->shouldReceive('getFlags')->once()->andReturn(0);
+        $this->mockExtension->shouldReceive('setAttribute')->once()->with('feature_flags', '0');
         $this->mockExtension->shouldReceive('getVersion')->once()->andReturn(1);
         $this->mockExtension->shouldReceive('reset')->twice();
 
@@ -192,6 +198,8 @@ class PerfbaseIntegrationTest extends BaseTest
         $this->mockExtension->shouldReceive('startSpan')->once()->with('full-stack', $this->config->getFlags(), []);
         $this->mockExtension->shouldReceive('stopSpan')->once()->with('full-stack');
         $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn(self::EXTENSION_BYTES);
+        $this->mockExtension->shouldReceive('getFlags')->once()->andReturn(0);
+        $this->mockExtension->shouldReceive('setAttribute')->once()->with('feature_flags', '0');
         $this->mockExtension->shouldReceive('getVersion')->once()->andReturn(1);
         $this->mockExtension->shouldReceive('reset')->twice();
 
@@ -224,6 +232,8 @@ class PerfbaseIntegrationTest extends BaseTest
         $this->mockExtension->shouldReceive('startSpan')->once();
         $this->mockExtension->shouldReceive('stopSpan')->once();
         $this->mockExtension->shouldReceive('getSpanData')->andReturn(self::EXTENSION_BYTES);
+        $this->mockExtension->shouldReceive('getFlags')->once()->andReturn(0);
+        $this->mockExtension->shouldReceive('setAttribute')->once()->with('feature_flags', '0');
         $this->mockExtension->shouldReceive('getVersion')->once()->andReturn(1);
         $this->mockExtension->shouldReceive('reset')->once(); // destructor only
 

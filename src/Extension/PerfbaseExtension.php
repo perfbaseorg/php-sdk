@@ -42,6 +42,11 @@ class PerfbaseExtension implements ExtensionInterface
         return perfbase_get_version();
     }
 
+    public function getFlags(): int
+    {
+        return perfbase_get_flags();
+    }
+
     public function setAttribute(string $key, string $value): void
     {
         perfbase_set_attribute($key, $value);
