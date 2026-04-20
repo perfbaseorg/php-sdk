@@ -267,7 +267,7 @@ class Config
      */
     private static function assertValidFlags(int $flags): void
     {
-        if ($flags < 0 || $flags > FeatureFlags::AllFlags) {
+        if ($flags < 0 || ($flags & ~FeatureFlags::ValidFlagsMask) !== 0) {
             throw new PerfbaseInvalidConfigException('Invalid flags value');
         }
     }

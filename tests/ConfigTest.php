@@ -113,7 +113,7 @@ class ConfigTest extends BaseTest
     public function testThrowsExceptionIfFlagsInvalidTooHigh(): void
     {
         $this->expectException(PerfbaseInvalidConfigException::class);
-        Config::new('abc123', FeatureFlags::AllFlags + 1);
+        Config::new('abc123', 1 << 20);
     }
 
     /**
@@ -264,5 +264,17 @@ class ConfigTest extends BaseTest
         $this->assertNotSame($config, $updated);
         $this->assertSame(FeatureFlags::DefaultFlags, $config->getFlags());
         $this->assertSame(FeatureFlags::TrackCpuTime, $updated->getFlags());
+    }
+
+    /**
+     * @covers ::withFlags
+     * @covers ::getFlags
+     */
+    public function testWithFlagsAcceptsAllFlagsSentinel(): void
+    {
+        $config = Config::new('my-key', FeatureFlags::TrackCpuTime);
+        $updated = $config->withFlags(FeatureFlags::AllFlags);
+
+        $this->assertSame(FeatureFlags::AllFlags, $updated->getFlags());
     }
 }

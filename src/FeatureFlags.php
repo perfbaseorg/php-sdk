@@ -3,125 +3,170 @@
 namespace Perfbase\SDK;
 
 /**
- * FeatureFlags
+ * Feature flags for controlling which profiling features are enabled.
+ *
+ * Semantics:
+ * - `0` or `AllFlags`: enable every feature except `UsePreciseClock`
+ * - `DefaultFlags`: SDK-curated defaults that exclude niche high-overhead flags
+ * - `X`: enable only feature `X`
+ * - `X | Y`: enable only features `X` and `Y`
  */
 class FeatureFlags
 {
+    /**
+     * Rust treats `0` as the "all default features" sentinel.
+     */
+    public const AllFlags = 0;
 
     /**
-     * Default flags to be used for profiling.
-     * This includes all the flags that are enabled by default.
+     * SDK-curated defaults.
+     *
+     * This excludes CPU-time and memory-allocation tracking by default because
+     * they are more specialized and can add overhead that many integrations do
+     * not need on the happy path.
      */
-    public const DefaultFlags =
-        self::UseCoarseClock |
-        self::TrackCpuTime |
-        self::TrackPdo |
-        self::TrackHttp |
-        self::TrackCaches |
-        self::TrackMongodb |
-        self::TrackElasticsearch |
-        self::TrackQueues |
-        self::TrackAwsSdk;
-
-    /**
-     * All flags.
-     */
-    public const AllFlags =
-        self::UseCoarseClock |
+    public const DefaultFlags = 
+        self::UsePreciseClock |
+        self::TrackWallTime |
+        self::TrackArguments |
         self::TrackExceptions |
         self::TrackFileCompilation |
-        self::TrackMemoryAllocation |
-        self::TrackCpuTime |
         self::TrackFileDefinitions |
+        self::TrackSessions |
+        self::TrackSerialization |
+        self::TrackRegex |
         self::TrackPdo |
-        self::TrackHttp |
-        self::TrackCaches |
         self::TrackMongodb |
         self::TrackElasticsearch |
-        self::TrackQueues |
-        self::TrackAwsSdk |
-        self::TrackFileOperations;
+        self::TrackCaches |
+        self::TrackHttp |
+        self::TrackMail |
+        self::TrackFileOperations |
+        self::TrackProc |
+        self::TrackProcessList;
 
     /**
-     * Utilises a faster but less accurate clock for profiling.
-     * Pros - Faster to call, less overhead, less impact on the profiled application.
-     * Cons - Lower resolution, less accurate, may not be suitable for all use cases.
-     * Notes: You might start seeing things like 0ms timings for some operations.
+     * Bitmask of every known flag for validation and documentation helpers.
      */
-    public const UseCoarseClock = 1 << 0;
+    public const ValidFlagsMask =
+        self::UsePreciseClock |
+        self::TrackWallTime |
+        self::TrackCpuTime |
+        self::TrackMemoryAllocation |
+        self::TrackArguments |
+        self::TrackExceptions |
+        self::TrackFileCompilation |
+        self::TrackFileDefinitions |
+        self::TrackSessions |
+        self::TrackSerialization |
+        self::TrackRegex |
+        self::TrackPdo |
+        self::TrackMongodb |
+        self::TrackElasticsearch |
+        self::TrackCaches |
+        self::TrackHttp |
+        self::TrackMail |
+        self::TrackFileOperations |
+        self::TrackProc |
+        self::TrackProcessList;
 
     /**
-     * Enables tracking of exceptions during profiling.
-     * @todo This functionality is currently disabled
+     * Opt in to the high-resolution monotonic clock.
      */
-    public const TrackExceptions = 1 << 1;
+    public const UsePreciseClock = 1 << 0;
 
     /**
-     * Enables tracking of file compilation during profiling.
-     * Measures the time taken to compile PHP files before execution.
+     * Track wall clock time.
      */
-    public const TrackFileCompilation = 1 << 2;
+    public const TrackWallTime = 1 << 1;
 
     /**
-     * Enables tracking of memory allocation during profiling.
-     * Taps into the Zend Memory Manager to track memory allocation and deallocation.
+     * Track CPU cycles via getrusage().
+     */
+    public const TrackCpuTime = 1 << 2;
+
+    /**
+     * Track memory allocation and deallocation.
      */
     public const TrackMemoryAllocation = 1 << 3;
 
     /**
-     * Enables tracking of CPU time during profiling.
+     * Capture function arguments.
      */
-    public const TrackCpuTime = 1 << 4;
+    public const TrackArguments = 1 << 4;
 
     /**
-     * Tracks the names + locations of files that are profiled.
+     * Track exception throws.
      */
-    public const TrackFileDefinitions = 1 << 5;
+    public const TrackExceptions = 1 << 5;
 
     /**
-     * Tracks PDO database operations during profiling.
-     * This includes queries + execution times, but not results.
+     * Track file include and require operations.
      */
-    public const TrackPdo = 1 << 6;
+    public const TrackFileCompilation = 1 << 6;
 
     /**
-     * Tracks HTTP requests during profiling.
-     * Exceptions to this are:
-     * A. If you utilise fsockopen for raw socket connections.
-     * B. If you utilise file_get_contents.
-     * C. If you utilise system/exec/shell_exec for curl requests.
+     * Track class and function definitions.
      */
-    public const TrackHttp = 1 << 7;
+    public const TrackFileDefinitions = 1 << 7;
 
     /**
-     * Tracks calls to caching mechanisms during profiling.
-     * This includes Redis, Memcached, APC, and other caching mechanisms.
+     * Track session operations.
      */
-    public const TrackCaches = 1 << 8;
+    public const TrackSessions = 1 << 8;
 
     /**
-     * Tracks MongoDB operations during profiling.
+     * Track serialize, json_encode, and similar operations.
      */
-    public const TrackMongodb = 1 << 9;
+    public const TrackSerialization = 1 << 9;
 
     /**
-     * Tracks Elasticsearch operations during profiling.
+     * Track preg_* operations.
      */
-    public const TrackElasticsearch = 1 << 10;
+    public const TrackRegex = 1 << 10;
 
     /**
-     * Tracks queue operations during profiling.
+     * Track PDO and mysqli queries.
      */
-    public const TrackQueues = 1 << 11;
+    public const TrackPdo = 1 << 11;
 
     /**
-     * Tracks AWS SDK operations during profiling.
+     * Track MongoDB operations.
      */
-    public const TrackAwsSdk = 1 << 12;
+    public const TrackMongodb = 1 << 12;
 
     /**
-     * Tracks file operations during profiling.
+     * Track Elasticsearch operations.
      */
-    public const TrackFileOperations = 1 << 13;
+    public const TrackElasticsearch = 1 << 13;
 
+    /**
+     * Track Redis, Memcached, and other cache calls.
+     */
+    public const TrackCaches = 1 << 14;
+
+    /**
+     * Track cURL and HTTP calls.
+     */
+    public const TrackHttp = 1 << 15;
+
+    /**
+     * Track mail and SMTP operations.
+     */
+    public const TrackMail = 1 << 16;
+
+    /**
+     * Track fopen, fread, fwrite, and related file I/O.
+     */
+    public const TrackFileOperations = 1 << 17;
+
+    /**
+     * Track proc_open, exec, and shell_exec.
+     */
+    public const TrackProc = 1 << 18;
+
+    /**
+     * Capture the top-N running processes at trace end.
+     */
+    public const TrackProcessList = 1 << 19;
 }
