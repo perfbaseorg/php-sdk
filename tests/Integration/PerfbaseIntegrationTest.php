@@ -59,12 +59,13 @@ class PerfbaseIntegrationTest extends BaseTest
         $this->mockExtension->shouldReceive('getSpanData')->twice()->andReturn(self::EXTENSION_BYTES);
         $this->mockExtension->shouldReceive('getFlags')->once()->andReturn(0);
         $this->mockExtension->shouldReceive('setAttribute')->once()->with('feature_flags', '0');
-        $this->mockExtension->shouldReceive('getVersion')->once()->andReturn(1);
+        $this->mockExtension->shouldReceive('getWireVersion')->once()->andReturn(1);
+        $this->mockExtension->shouldReceive('getVersion')->once()->andReturn('0.1.0');
         $this->mockExtension->shouldReceive('reset')->twice();
 
         $this->mockApiClient->shouldReceive('submitTrace')
             ->once()
-            ->with(self::EXTENSION_BYTES, 1, Mockery::pattern(self::ISO_8601_UTC_PATTERN))
+            ->with(self::EXTENSION_BYTES, '0.1.0', 1, Mockery::pattern(self::ISO_8601_UTC_PATTERN))
             ->andReturn(SubmitResult::success(202));
 
         $perfbase = new Perfbase($this->config, $this->mockExtension, $this->mockApiClient);
@@ -93,7 +94,8 @@ class PerfbaseIntegrationTest extends BaseTest
         $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn(self::EXTENSION_BYTES);
         $this->mockExtension->shouldReceive('getFlags')->once()->andReturn(0);
         $this->mockExtension->shouldReceive('setAttribute')->once()->with('feature_flags', '0');
-        $this->mockExtension->shouldReceive('getVersion')->once()->andReturn(1);
+        $this->mockExtension->shouldReceive('getWireVersion')->once()->andReturn(1);
+        $this->mockExtension->shouldReceive('getVersion')->once()->andReturn('0.1.0');
         $this->mockExtension->shouldReceive('reset')->twice();
 
         $this->mockApiClient->shouldReceive('submitTrace')
@@ -126,7 +128,8 @@ class PerfbaseIntegrationTest extends BaseTest
         $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn(self::EXTENSION_BYTES);
         $this->mockExtension->shouldReceive('getFlags')->once()->andReturn(0);
         $this->mockExtension->shouldReceive('setAttribute')->once()->with('feature_flags', '0');
-        $this->mockExtension->shouldReceive('getVersion')->once()->andReturn(1);
+        $this->mockExtension->shouldReceive('getWireVersion')->once()->andReturn(1);
+        $this->mockExtension->shouldReceive('getVersion')->once()->andReturn('0.1.0');
         $this->mockExtension->shouldReceive('reset')->twice();
 
         $this->mockApiClient->shouldReceive('submitTrace')
@@ -179,13 +182,14 @@ class PerfbaseIntegrationTest extends BaseTest
                 return $options['body'] === $testData
                     && $options['headers']['Authorization'] === 'Bearer integration-test-key'
                     && $options['headers']['Content-Type'] === 'application/octet-stream'
-                    && $options['headers']['X-Perfbase-Payload-Version'] === '1'
+                    && $options['headers']['X-Perfbase-Version'] === '0.1.0'
+                    && $options['headers']['X-Perfbase-Protocol'] === '1'
                     && $options['headers']['X-Perfbase-Client-Created-At'] === $clientCreatedAt;
             }))
             ->andReturn(SubmitResult::success(202));
 
         $apiClient = new ApiClient($this->config, $this->mockHttpClient);
-        $this->assertTrue($apiClient->submitTrace($testData, 1, $clientCreatedAt)->isSuccess());
+        $this->assertTrue($apiClient->submitTrace($testData, '0.1.0', 1, $clientCreatedAt)->isSuccess());
     }
 
     /**
@@ -200,7 +204,8 @@ class PerfbaseIntegrationTest extends BaseTest
         $this->mockExtension->shouldReceive('getSpanData')->once()->andReturn(self::EXTENSION_BYTES);
         $this->mockExtension->shouldReceive('getFlags')->once()->andReturn(0);
         $this->mockExtension->shouldReceive('setAttribute')->once()->with('feature_flags', '0');
-        $this->mockExtension->shouldReceive('getVersion')->once()->andReturn(1);
+        $this->mockExtension->shouldReceive('getWireVersion')->once()->andReturn(1);
+        $this->mockExtension->shouldReceive('getVersion')->once()->andReturn('0.1.0');
         $this->mockExtension->shouldReceive('reset')->twice();
 
         $this->mockHttpClient->shouldReceive('post')
@@ -208,7 +213,8 @@ class PerfbaseIntegrationTest extends BaseTest
             ->with('/v1/submit', Mockery::on(function ($options) {
                 return $options['body'] === self::EXTENSION_BYTES
                     && $options['headers']['Content-Type'] === 'application/octet-stream'
-                    && $options['headers']['X-Perfbase-Payload-Version'] === '1'
+                    && $options['headers']['X-Perfbase-Version'] === '0.1.0'
+                    && $options['headers']['X-Perfbase-Protocol'] === '1'
                     && preg_match(self::ISO_8601_UTC_PATTERN, $options['headers']['X-Perfbase-Client-Created-At']) === 1
                     && isset($options['headers']['Authorization']);
             }))
@@ -234,7 +240,8 @@ class PerfbaseIntegrationTest extends BaseTest
         $this->mockExtension->shouldReceive('getSpanData')->andReturn(self::EXTENSION_BYTES);
         $this->mockExtension->shouldReceive('getFlags')->once()->andReturn(0);
         $this->mockExtension->shouldReceive('setAttribute')->once()->with('feature_flags', '0');
-        $this->mockExtension->shouldReceive('getVersion')->once()->andReturn(1);
+        $this->mockExtension->shouldReceive('getWireVersion')->once()->andReturn(1);
+        $this->mockExtension->shouldReceive('getVersion')->once()->andReturn('0.1.0');
         $this->mockExtension->shouldReceive('reset')->once(); // destructor only
 
         $this->mockHttpClient->shouldReceive('post')

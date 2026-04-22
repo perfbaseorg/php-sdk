@@ -37,9 +37,14 @@ class PerfbaseExtension implements ExtensionInterface
         return perfbase_get_data();
     }
 
-    public function getVersion(): int
+    public function getVersion(): string
     {
-        return perfbase_get_version();
+        return perfbase_version();
+    }
+
+    public function getWireVersion(): int
+    {
+        return perfbase_wire_version();
     }
 
     public function getFlags(): int

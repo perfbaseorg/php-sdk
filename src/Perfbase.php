@@ -181,14 +181,20 @@ class Perfbase
             throw new PerfbaseException('Extension returned empty trace data');
         }
 
-        $payloadVersion = $this->extension->getVersion();
-        if ($payloadVersion <= 0) {
-            throw new PerfbaseException('Extension returned invalid encoding version');
+        $wireVersion = $this->extension->getWireVersion();
+        if ($wireVersion <= 0) {
+            throw new PerfbaseException('Extension returned invalid wire version');
+        }
+
+        $extensionVersion = $this->extension->getVersion();
+        if ($extensionVersion === '') {
+            throw new PerfbaseException('Extension returned invalid release version');
         }
 
         $result = $this->apiClient->submitTrace(
             $traceData,
-            $payloadVersion,
+            $extensionVersion,
+            $wireVersion,
             gmdate('Y-m-d\TH:i:s\Z')
         );
 

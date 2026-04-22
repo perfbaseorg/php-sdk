@@ -12,7 +12,8 @@ class ExtensionUtils
         'perfbase_disable',
         'perfbase_reset',
         'perfbase_get_data',
-        'perfbase_get_version',
+        'perfbase_version',
+        'perfbase_wire_version',
         'perfbase_get_flags',
         'perfbase_set_attribute'
     ];

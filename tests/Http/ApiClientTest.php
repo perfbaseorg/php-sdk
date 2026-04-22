@@ -85,12 +85,13 @@ class ApiClientTest extends BaseTest
             ->with('/v1/submit', Mockery::on(function ($options) use ($testData) {
                 return isset($options['body']) && $options['body'] === $testData
                     && isset($options['headers']) && is_array($options['headers'])
-                    && $options['headers']['X-Perfbase-Payload-Version'] === '1';
+                    && $options['headers']['X-Perfbase-Version'] === '0.1.0'
+                    && $options['headers']['X-Perfbase-Protocol'] === '1';
             }))
             ->andReturn($expectedResult);
 
         $apiClient = new ApiClient($this->config, $this->mockHttpClient);
-        $result = $apiClient->submitTrace($testData, 1);
+        $result = $apiClient->submitTrace($testData, '0.1.0', 1);
 
         $this->assertTrue($result->isSuccess());
         $this->assertSame(202, $result->getStatusCode());
@@ -112,14 +113,15 @@ class ApiClientTest extends BaseTest
                     && $headers['Accept'] === 'application/json'
                     && $headers['Content-Type'] === 'application/octet-stream'
                     && $headers['Connection'] === 'keep-alive'
-                    && $headers['X-Perfbase-Payload-Version'] === '1'
+                    && $headers['X-Perfbase-Version'] === '0.1.0'
+                    && $headers['X-Perfbase-Protocol'] === '1'
                     && $headers['X-Perfbase-Client-Created-At'] === $clientCreatedAt
                     && isset($headers['User-Agent']);
             }))
             ->andReturn(SubmitResult::success());
 
         $apiClient = new ApiClient($this->config, $this->mockHttpClient);
-        $result = $apiClient->submitTrace('test-data', 1, $clientCreatedAt);
+        $result = $apiClient->submitTrace('test-data', '0.1.0', 1, $clientCreatedAt);
 
         $this->assertTrue($result->isSuccess());
     }
@@ -128,7 +130,7 @@ class ApiClientTest extends BaseTest
      * @covers ::submitTrace
      * @covers ::submit
      */
-    public function testSubmitTraceMaintainsSingleArgumentCompatibility(): void
+    public function testSubmitTraceWithoutClientCreatedAt(): void
     {
         $this->mockHttpClient->shouldReceive('post')
             ->once()
@@ -137,13 +139,14 @@ class ApiClientTest extends BaseTest
 
                 return $options['body'] === 'test-data'
                     && $headers['Content-Type'] === 'application/octet-stream'
-                    && $headers['X-Perfbase-Payload-Version'] === '1'
+                    && $headers['X-Perfbase-Version'] === '0.1.0'
+                    && $headers['X-Perfbase-Protocol'] === '1'
                     && !isset($headers['X-Perfbase-Client-Created-At']);
             }))
             ->andReturn(SubmitResult::success());
 
         $apiClient = new ApiClient($this->config, $this->mockHttpClient);
-        $result = $apiClient->submitTrace('test-data');
+        $result = $apiClient->submitTrace('test-data', '0.1.0', 1);
 
         $this->assertTrue($result->isSuccess());
     }
@@ -159,13 +162,14 @@ class ApiClientTest extends BaseTest
             ->with('/v1/submit', Mockery::on(function ($options) {
                 return $options['body'] === ''
                     && $options['headers']['Content-Type'] === 'application/octet-stream'
-                    && $options['headers']['X-Perfbase-Payload-Version'] === '1'
+                    && $options['headers']['X-Perfbase-Version'] === '0.1.0'
+                    && $options['headers']['X-Perfbase-Protocol'] === '1'
                     && !isset($options['headers']['X-Perfbase-Client-Created-At']);
             }))
             ->andReturn(SubmitResult::success());
 
         $apiClient = new ApiClient($this->config, $this->mockHttpClient);
-        $result = $apiClient->submitTrace('', 1);
+        $result = $apiClient->submitTrace('', '0.1.0', 1);
 
         $this->assertTrue($result->isSuccess());
     }
@@ -182,7 +186,7 @@ class ApiClientTest extends BaseTest
             ->andReturn($failureResult);
 
         $apiClient = new ApiClient($this->config, $this->mockHttpClient);
-        $result = $apiClient->submitTrace('test-data', 1);
+        $result = $apiClient->submitTrace('test-data', '0.1.0', 1);
 
         $this->assertTrue($result->isRetryable());
         $this->assertSame(503, $result->getStatusCode());

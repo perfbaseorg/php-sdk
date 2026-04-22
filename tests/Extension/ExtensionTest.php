@@ -105,6 +105,23 @@ class ExtensionTest extends BaseTest
 
         $version = $extension->getVersion();
 
+        $this->assertIsString($version);
+        $this->assertMatchesRegularExpression('/^\d+\.\d+\.\d+/', $version);
+    }
+
+    /**
+     * @covers ::getWireVersion
+     */
+    public function testGetWireVersion(): void
+    {
+        if (!ExtensionUtils::perfbaseExtensionLoaded()) {
+            $this->markTestSkipped('Perfbase extension not loaded');
+        }
+
+        $extension = new PerfbaseExtension();
+
+        $version = $extension->getWireVersion();
+
         $this->assertIsInt($version);
         $this->assertGreaterThan(0, $version);
     }

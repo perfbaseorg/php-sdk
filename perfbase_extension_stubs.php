@@ -66,13 +66,29 @@ if (!function_exists('perfbase_get_data')) {
     }
 }
 
-if (!function_exists('perfbase_get_version')) {
+if (!function_exists('perfbase_version')) {
     /**
-     * Retrieves the encoding version for collected profiling data.
+     * Returns the extension release version as a semver string
+     * (e.g. `0.1.0`, or `0.1.<build_id>` in CI builds).
+     *
+     * @return string
+     */
+    function perfbase_version(): string
+    {
+        // Stub only—no implementation needed
+        return '0.0.0';
+    }
+}
+
+if (!function_exists('perfbase_wire_version')) {
+    /**
+     * Returns the wire/encoding format version of the bytes produced by
+     * `perfbase_get_data()`. Bumps when the on-the-wire format changes in
+     * a way consumers need to branch on.
      *
      * @return int
      */
-    function perfbase_get_version(): int
+    function perfbase_wire_version(): int
     {
         // Stub only—no implementation needed
         return 1;

@@ -48,32 +48,35 @@ class ApiClient
     }
 
     /**
-     * Submits a trace to the Perfbase API
+     * Submits a trace to the Perfbase API.
      *
-     * @param string $perfData Data to send in the request body
-     * @param int $payloadVersion Payload encoding version. Defaults to `1` for backwards compatibility.
+     * @param string $perfData Raw trace payload (Brotli-compressed MessagePack bytes)
+     * @param string $extensionVersion Extension release version (e.g. `0.1.0`). Sent as `X-Perfbase-Version`.
+     * @param int $wireVersion Wire/encoding format version. Sent as `X-Perfbase-Protocol`.
      * @param string|null $clientCreatedAt Trace creation timestamp in ISO 8601 UTC
      * @return SubmitResult
      */
-    public function submitTrace(string $perfData, int $payloadVersion = 1, ?string $clientCreatedAt = null): SubmitResult
+    public function submitTrace(string $perfData, string $extensionVersion, int $wireVersion, ?string $clientCreatedAt = null): SubmitResult
     {
-        return $this->submit('/v1/submit', $perfData, $payloadVersion, $clientCreatedAt);
+        return $this->submit('/v1/submit', $perfData, $extensionVersion, $wireVersion, $clientCreatedAt);
     }
 
     /**
-     * Sends a POST request to the specified API endpoint
+     * Sends a POST request to the specified API endpoint.
      *
      * @param string $endpoint API endpoint to send the request to
      * @param string $perfData Data to send in the request body
-     * @param int $payloadVersion Payload encoding version
+     * @param string $extensionVersion Extension release version
+     * @param int $wireVersion Wire/encoding format version
      * @param string|null $clientCreatedAt Trace creation timestamp in ISO 8601 UTC
      * @return SubmitResult
      */
-    private function submit(string $endpoint, string $perfData, int $payloadVersion, ?string $clientCreatedAt = null): SubmitResult
+    private function submit(string $endpoint, string $perfData, string $extensionVersion, int $wireVersion, ?string $clientCreatedAt = null): SubmitResult
     {
         $headers = $this->defaultHeaders;
         $headers['Content-Type'] = 'application/octet-stream';
-        $headers['X-Perfbase-Payload-Version'] = (string) $payloadVersion;
+        $headers['X-Perfbase-Version'] = $extensionVersion;
+        $headers['X-Perfbase-Protocol'] = (string) $wireVersion;
 
         if ($clientCreatedAt !== null) {
             $headers['X-Perfbase-Client-Created-At'] = $clientCreatedAt;

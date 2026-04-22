@@ -39,11 +39,22 @@ interface ExtensionInterface
     public function getSpanData(string $spanName = ''): string;
 
     /**
-     * Retrieves the encoding version for the current trace payload format.
+     * Returns the extension release version as a semver string
+     * (e.g. `0.1.0`). Sent alongside each trace so the backend can tell
+     * which build produced it.
+     *
+     * @return string
+     */
+    public function getVersion(): string;
+
+    /**
+     * Returns the wire/encoding format version of the bytes emitted by
+     * `getSpanData()`. Bumps whenever the serialized format changes in a
+     * way consumers need to branch on.
      *
      * @return int
      */
-    public function getVersion(): int;
+    public function getWireVersion(): int;
 
     /**
      * Returns the bitwise OR of feature flags across every span held by
