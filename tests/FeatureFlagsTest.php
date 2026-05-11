@@ -35,6 +35,9 @@ class FeatureFlagsTest extends BaseTest
             FeatureFlags::TrackFileOperations,
             FeatureFlags::TrackProc,
             FeatureFlags::TrackProcessList,
+            FeatureFlags::TrackErrors,
+            FeatureFlags::TrackMagicMethods,
+            FeatureFlags::TrackOpcache,
         ];
     }
 
@@ -55,6 +58,16 @@ class FeatureFlagsTest extends BaseTest
     public function testAllFlagsUsesTheAllFeaturesSentinel(): void
     {
         $this->assertSame(0, FeatureFlags::AllFlags);
+    }
+
+    /**
+     * @covers \Perfbase\SDK\FeatureFlags
+     */
+    public function testRuntimeEventFlagsMatchExtensionBitPositions(): void
+    {
+        $this->assertSame(1 << 20, FeatureFlags::TrackErrors);
+        $this->assertSame(1 << 21, FeatureFlags::TrackMagicMethods);
+        $this->assertSame(1 << 22, FeatureFlags::TrackOpcache);
     }
 
     /**
@@ -90,6 +103,9 @@ class FeatureFlagsTest extends BaseTest
             FeatureFlags::TrackFileOperations,
             FeatureFlags::TrackProc,
             FeatureFlags::TrackProcessList,
+            FeatureFlags::TrackErrors,
+            FeatureFlags::TrackMagicMethods,
+            FeatureFlags::TrackOpcache,
         ];
 
         foreach ($expectedFlags as $flag) {

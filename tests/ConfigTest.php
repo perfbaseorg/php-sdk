@@ -113,7 +113,7 @@ class ConfigTest extends BaseTest
     public function testThrowsExceptionIfFlagsInvalidTooHigh(): void
     {
         $this->expectException(PerfbaseInvalidConfigException::class);
-        Config::new('abc123', 1 << 20);
+        Config::new('abc123', 1 << 23);
     }
 
     /**

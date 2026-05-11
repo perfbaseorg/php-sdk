@@ -25,7 +25,7 @@ class FeatureFlags
      * they are more specialized and can add overhead that many integrations do
      * not need on the happy path.
      */
-    public const DefaultFlags = 
+    public const DefaultFlags =
         self::UsePreciseClock |
         self::TrackWallTime |
         self::TrackArguments |
@@ -43,7 +43,10 @@ class FeatureFlags
         self::TrackMail |
         self::TrackFileOperations |
         self::TrackProc |
-        self::TrackProcessList;
+        self::TrackProcessList |
+        self::TrackErrors |
+        self::TrackMagicMethods |
+        self::TrackOpcache;
 
     /**
      * Bitmask of every known flag for validation and documentation helpers.
@@ -68,7 +71,10 @@ class FeatureFlags
         self::TrackMail |
         self::TrackFileOperations |
         self::TrackProc |
-        self::TrackProcessList;
+        self::TrackProcessList |
+        self::TrackErrors |
+        self::TrackMagicMethods |
+        self::TrackOpcache;
 
     /**
      * Opt in to the high-resolution monotonic clock.
@@ -169,4 +175,21 @@ class FeatureFlags
      * Capture the top-N running processes at trace end.
      */
     public const TrackProcessList = 1 << 19;
+
+    /**
+     * Track PHP errors, warnings, and notices.
+     */
+    public const TrackErrors = 1 << 20;
+
+    /**
+     * Count magic method invocations such as __call, __get, and __set.
+     */
+    public const TrackMagicMethods = 1 << 21;
+
+    /**
+     * Capture OPcache statistics (hits/misses delta over the trace, cached-script
+     * count, memory used/free/wasted, interned strings, hit rate). No-op when
+     * OPcache isn't loaded; structurally produces zero deltas on CLI workloads.
+     */
+    public const TrackOpcache = 1 << 22;
 }

@@ -254,6 +254,8 @@ $perfbase->setFlags(FeatureFlags::TrackCpuTime | FeatureFlags::TrackMemoryAlloca
 | `TrackFileCompilation` | Monitor PHP file compilation |
 | `TrackFileDefinitions` | Track PHP class/function definitions |
 | `TrackExceptions` | Monitor exception handling |
+| `TrackErrors` | Monitor PHP errors, warnings, and notices |
+| `TrackMagicMethods` | Count magic method invocations |
 
 ## API Reference
 
