@@ -25,7 +25,7 @@ class Perfbase
     /**
      * The version of the Perfbase SDK
      */
-    public const VERSION = '1.1.0';
+    public const VERSION = '1.9.0';
 
     /**
      * The default span name used when starting a profiling session
@@ -122,6 +122,7 @@ class Perfbase
      *
      * @param string $spanName The name of the span to stop profiling
      * @return bool Will equal true if the span was successfully stopped, false if it was not active.
+     * @throws PerfbaseInvalidSpanException
      */
     public function stopTraceSpan(string $spanName): bool
     {
@@ -165,6 +166,7 @@ class Perfbase
      * so the caller can decide whether to retry or discard.
      *
      * @return SubmitResult
+     * @throws PerfbaseException When the extension returns no trace data or an invalid version.
      */
     public function submitTrace(): SubmitResult
     {

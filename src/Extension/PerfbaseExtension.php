@@ -34,12 +34,19 @@ class PerfbaseExtension implements ExtensionInterface
     public function getSpanData(string $spanName = ''): string
     {
         // The current extension only supports retrieving the full trace payload.
-        return perfbase_get_data();
+        // It returns NULL when no data is available (or on allocator failure),
+        // which must not escape as a TypeError from this string-typed method.
+        $data = perfbase_get_data();
+
+        return is_string($data) ? $data : '';
     }
 
     public function getVersion(): string
     {
-        return perfbase_version();
+        // NULL on allocator failure; normalise so callers can validate it.
+        $version = perfbase_version();
+
+        return is_string($version) ? $version : '';
     }
 
     public function getWireVersion(): int

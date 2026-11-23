@@ -25,7 +25,9 @@ class ExtensionUtilsTest extends BaseTest
     {
         $reflection = new \ReflectionClass(ExtensionUtils::class);
         $methodsProperty = $reflection->getProperty('methods');
-        $methodsProperty->setAccessible(true);
+        if (PHP_VERSION_ID < 80100) {
+            $methodsProperty->setAccessible(true);
+        }
         $requiredMethods = $methodsProperty->getValue();
 
         $this->assertSame([

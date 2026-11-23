@@ -55,11 +55,12 @@ if (!function_exists('perfbase_reset')) {
 
 if (!function_exists('perfbase_get_data')) {
     /**
-     * Retrieves the collected profiling data
+     * Retrieves the collected profiling data as raw Brotli-compressed
+     * MessagePack bytes. Returns NULL when no data is available.
      *
-     * @return string
+     * @return string|null
      */
-    function perfbase_get_data(): string
+    function perfbase_get_data(): ?string
     {
         // Stub only—no implementation needed
         return '';
@@ -71,9 +72,11 @@ if (!function_exists('perfbase_version')) {
      * Returns the extension release version as a semver string
      * (e.g. `0.1.0`, or `0.1.<build_id>` in CI builds).
      *
-     * @return string
+     * Returns NULL on allocator failure.
+     *
+     * @return string|null
      */
-    function perfbase_version(): string
+    function perfbase_version(): ?string
     {
         // Stub only—no implementation needed
         return '0.0.0';

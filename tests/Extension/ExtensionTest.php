@@ -159,4 +159,20 @@ class ExtensionTest extends BaseTest
         
         $this->assertTrue(true); // If we get here, no exception was thrown
     }
+
+    /**
+     * @covers ::getSpanData
+     * @covers ::getVersion
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function testNullReturnsFromExtensionAreNormalisedToEmptyStrings(): void
+    {
+        require __DIR__ . '/../Fixtures/null_returning_extension_functions.php';
+
+        $extension = new PerfbaseExtension();
+
+        $this->assertSame('', $extension->getSpanData());
+        $this->assertSame('', $extension->getVersion());
+    }
 }

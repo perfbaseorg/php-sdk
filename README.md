@@ -36,19 +36,18 @@ If you're not using a framework or need a custom integration, this SDK is for yo
 
 ## Features
 
-- **Real-time performance profiling** — CPU time, memory usage, and execution tracing
+- **Performance profiling** — wall time, optional CPU time and memory, full call trees
 - **Multi-span tracing** — track multiple concurrent operations within a single request
 - **Database query tracking** — monitor PDO, MongoDB, Elasticsearch queries
 - **HTTP request monitoring** — track outbound HTTP calls and API requests
 - **Cache operation tracking** — monitor Redis, Memcached, and other cache operations
-- **Queue system monitoring** — track background job performance
 - **Custom attributes** — add contextual metadata to your traces
 - **Configurable feature flags** — enable/disable specific profiling features
-- **Multi-tenant support** — organization and project-level data isolation
+- **Runtime events** — PHP errors, exceptions, file compilation, OPcache statistics
 
 ## Requirements
 
-- **PHP**: `7.4` to `8.5`
+- **PHP**: `7.4` to `8.6`
 - **Operating System**: Linux or macOS (Windows not supported)
 - **Dependencies**: 
   - `ext-curl` (usually enabled by default)
@@ -130,7 +129,7 @@ use Perfbase\SDK\FeatureFlags;
 $config = Config::fromArray([
     'api_key' => 'your_api_key_here',
     'timeout' => 15,
-    'flags' => FeatureFlags::AllFlags, // Enable all profiling features
+    'flags' => FeatureFlags::AllFlags, // Extension default set (all but the opt-in flags)
 ]);
 
 $perfbase = new Perfbase($config);
@@ -216,15 +215,21 @@ $config = Config::fromArray([
     'flags' => FeatureFlags::DefaultFlags
 ]);
 
-// Enable all available features
+// The extension's default set (everything except the opt-in flags)
 $config = Config::fromArray([
     'api_key' => 'your_api_key',
     'flags' => FeatureFlags::AllFlags
 ]);
 
-// Custom combination
-$customFlags = FeatureFlags::TrackCpuTime | 
-               FeatureFlags::TrackPdo | 
+// The extension's default set plus per-function CPU time
+$config = Config::fromArray([
+    'api_key' => 'your_api_key',
+    'flags' => FeatureFlags::TrackCpuTime
+]);
+
+// Exactly these features (CPU time, PDO and HTTP, nothing else)
+$customFlags = FeatureFlags::TrackCpuTime |
+               FeatureFlags::TrackPdo |
                FeatureFlags::TrackHttp;
 
 $config = Config::fromArray([
@@ -238,24 +243,35 @@ $perfbase->setFlags(FeatureFlags::TrackCpuTime | FeatureFlags::TrackMemoryAlloca
 
 ### Available Feature Flags
 
+Flags mirror the extension's `PERFBASE_FLAG_*` constants. Wall time is always tracked.
+
+- `FeatureFlags::DefaultFlags` (the default) — every flag below except `TrackCpuTime` and `TrackMemoryAllocation`.
+- `FeatureFlags::AllFlags` (`0`) — every feature except the opt-in flags `UsePreciseClock` and `TrackCpuTime`.
+- A mask of **only** opt-in flags means "the extension's default set plus those", so `FeatureFlags::TrackCpuTime` on its own enables everything plus CPU time.
+- Any mask containing a regular flag enables **exactly** those features. `AllFlags | TrackPdo` is just `TrackPdo`.
+
 | Flag | Description |
 |------|-------------|
-| `UseCoarseClock` | Faster, less accurate timing (reduces overhead) |
-| `TrackCpuTime` | Monitor CPU time usage |
-| `TrackMemoryAllocation` | Track memory allocation patterns |
-| `TrackPdo` | Monitor database queries via PDO |
-| `TrackHttp` | Track outbound HTTP requests |
-| `TrackCaches` | Monitor cache operations (Redis, Memcached) |
-| `TrackMongodb` | Track MongoDB operations |
-| `TrackElasticsearch` | Monitor Elasticsearch queries |
-| `TrackQueues` | Track queue/background job operations |
-| `TrackAwsSdk` | Monitor AWS SDK operations |
-| `TrackFileOperations` | Track file I/O operations |
-| `TrackFileCompilation` | Monitor PHP file compilation |
-| `TrackFileDefinitions` | Track PHP class/function definitions |
-| `TrackExceptions` | Monitor exception handling |
-| `TrackErrors` | Monitor PHP errors, warnings, and notices |
-| `TrackMagicMethods` | Count magic method invocations |
+| `UsePreciseClock` | **Opt-in.** Guarantee high-resolution wall timing on hosts where the default would be the coarse kernel-tick clock |
+| `TrackCpuTime` | **Opt-in.** Per-function CPU time (a syscall per read on Linux, twice per call) |
+| `TrackMemoryAllocation` | Per-function memory allocation and deallocation |
+| `TrackExceptions` | Count and sample exception throws (PHP 8.0+) |
+| `TrackFileCompilation` | Count and time file compilation (`include` / `require`) |
+| `TrackPdo` | PDO, mysqli and legacy mysql queries (normalised SQL) |
+| `TrackMongodb` | MongoDB operations |
+| `TrackElasticsearch` | Elasticsearch operations |
+| `TrackCaches` | Redis and Memcached calls |
+| `TrackHttp` | cURL, Guzzle and AWS SDK calls |
+| `TrackMail` | `mail()` calls |
+| `TrackFileOperations` | `fopen`, `fread`, `fwrite`, and related file I/O |
+| `TrackProc` | `exec`, `shell_exec`, `proc_open`, `popen` and the `sleep` family |
+| `TrackProcessList` | Capture the top running processes on the host at trace end |
+| `TrackErrors` | Count and sample PHP errors, warnings, and notices (PHP 8.0+) |
+| `TrackMagicMethods` | Count magic method invocations (`__call`, `__get`, ...) |
+| `TrackOpcache` | OPcache hit/miss deltas and memory statistics |
+| `TrackStreams` | PHP 8.6+: stream errors and `Io\Poll\Context::wait` metadata (inert on older PHP) |
+
+`TrackWallTime`, `TrackArguments`, `TrackFileDefinitions`, `TrackSessions`, `TrackSerialization` and `TrackRegex` are deprecated: they never had any effect and the extension ignores their bits. They are still accepted so existing configuration keeps working; remove them when convenient.
 
 ## API Reference
 
@@ -351,6 +367,22 @@ if (Perfbase::isAvailable()) {
 }
 ```
 
+### URL sanitisation
+
+`Perfbase\SDK\Utils\UrlSanitizer` prepares a URL for a trace attribute such as `http_url`. It keeps the query string (`/ajax.php?method=example` is often what identifies the operation) and replaces the value of any parameter whose name looks like a credential with `REDACTED`. It also drops `user:pass@` and the `#fragment`.
+
+```php
+use Perfbase\SDK\Utils\UrlSanitizer;
+
+UrlSanitizer::sanitize('https://example.com/ajax.php?method=example&access_token=abc');
+// https://example.com/ajax.php?method=example&access_token=REDACTED
+
+// Add application-specific names (matched as whole words, case-insensitive)
+UrlSanitizer::sanitize($url, ['coupon', 'order_ref']);
+```
+
+Parameter names are split into words (`_`, `-`, `.`, brackets, camelCase), so `token`, `access_token`, `user[password]`, `apiKey`, `X-Amz-Signature`, `_wpnonce`, `email` or `PHPSESSID` are redacted while `author`, `compass` or `key` are not.
+
 ## Error Handling
 
 The SDK is designed to fail gracefully when the extension is not available:
@@ -366,7 +398,10 @@ try {
     // Your application continues normally
 }
 
-// Submission failures are returned as SubmitResult, not thrown
+// Delivery failures are returned as SubmitResult, not thrown.
+// submitTrace() only throws PerfbaseException when the extension hands back
+// no trace data or an invalid version, so wrap it if profiling must never
+// interrupt your application.
 $result = $perfbase->submitTrace();
 if ($result->isRetryable()) {
     // Transient failure — safe to retry later

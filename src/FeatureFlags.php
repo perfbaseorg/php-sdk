@@ -5,36 +5,37 @@ namespace Perfbase\SDK;
 /**
  * Feature flags for controlling which profiling features are enabled.
  *
- * Semantics:
- * - `0` or `AllFlags`: enable every feature except `UsePreciseClock`
- * - `DefaultFlags`: SDK-curated defaults that exclude niche high-overhead flags
- * - `X`: enable only feature `X`
- * - `X | Y`: enable only features `X` and `Y`
+ * Bit positions mirror the extension's `PERFBASE_FLAG_*` constants.
+ *
+ * Semantics (applied by the extension):
+ * - `0` or `AllFlags`: every feature except the opt-in flags
+ *   (`UsePreciseClock` and `TrackCpuTime`)
+ * - A mask containing only opt-in flags: that default set plus those flags
+ *   (e.g. `TrackCpuTime` alone = everything in the default set + CPU time)
+ * - Any mask containing a regular flag: exactly the named features
+ * - `DefaultFlags`: SDK-curated exact mask (see below)
+ *
+ * Wall time is always tracked; there is no flag for it.
  */
 class FeatureFlags
 {
     /**
-     * Rust treats `0` as the "all default features" sentinel.
+     * The extension treats `0` as "every feature except the opt-in flags".
      */
     public const AllFlags = 0;
 
     /**
      * SDK-curated defaults.
      *
-     * This excludes CPU-time and memory-allocation tracking by default because
-     * they are more specialized and can add overhead that many integrations do
-     * not need on the happy path.
+     * Every non-deprecated feature except per-function CPU time and memory
+     * allocation tracking, which add per-call overhead that many integrations
+     * do not need on the happy path. Includes `UsePreciseClock` so sub-tick
+     * timings are not quantised to zero on hosts without a usable TSC.
      */
     public const DefaultFlags =
         self::UsePreciseClock |
-        self::TrackWallTime |
-        self::TrackArguments |
         self::TrackExceptions |
         self::TrackFileCompilation |
-        self::TrackFileDefinitions |
-        self::TrackSessions |
-        self::TrackSerialization |
-        self::TrackRegex |
         self::TrackPdo |
         self::TrackMongodb |
         self::TrackElasticsearch |
@@ -46,23 +47,31 @@ class FeatureFlags
         self::TrackProcessList |
         self::TrackErrors |
         self::TrackMagicMethods |
-        self::TrackOpcache;
+        self::TrackOpcache |
+        self::TrackStreams;
 
     /**
-     * Bitmask of every known flag for validation and documentation helpers.
+     * Bits reserved by the extension. They belonged to flags that never had
+     * any effect; the extension ignores them. Kept so existing configuration
+     * that still sets them keeps validating.
+     */
+    public const DeprecatedFlagsMask =
+        self::TrackWallTime |
+        self::TrackArguments |
+        self::TrackFileDefinitions |
+        self::TrackSessions |
+        self::TrackSerialization |
+        self::TrackRegex;
+
+    /**
+     * Bitmask of every accepted flag for validation and documentation helpers.
      */
     public const ValidFlagsMask =
         self::UsePreciseClock |
-        self::TrackWallTime |
         self::TrackCpuTime |
         self::TrackMemoryAllocation |
-        self::TrackArguments |
         self::TrackExceptions |
         self::TrackFileCompilation |
-        self::TrackFileDefinitions |
-        self::TrackSessions |
-        self::TrackSerialization |
-        self::TrackRegex |
         self::TrackPdo |
         self::TrackMongodb |
         self::TrackElasticsearch |
@@ -74,65 +83,71 @@ class FeatureFlags
         self::TrackProcessList |
         self::TrackErrors |
         self::TrackMagicMethods |
-        self::TrackOpcache;
+        self::TrackOpcache |
+        self::TrackStreams |
+        self::DeprecatedFlagsMask;
 
     /**
-     * Opt in to the high-resolution monotonic clock.
+     * Opt-in. Guarantee high-resolution wall timing. Where the calibrated TSC
+     * (Linux x86-64), vDSO `CLOCK_MONOTONIC` (Linux arm64) or
+     * `mach_absolute_time` (macOS) is already the default this changes
+     * nothing; elsewhere it replaces the coarse kernel-tick clock.
      */
     public const UsePreciseClock = 1 << 0;
 
     /**
-     * Track wall clock time.
+     * @deprecated Reserved by the extension and ignored. Wall time is always tracked.
      */
     public const TrackWallTime = 1 << 1;
 
     /**
-     * Track CPU cycles via getrusage().
+     * Opt-in. Per-function CPU time via `clock_gettime(CLOCK_THREAD_CPUTIME_ID)`.
+     * A real syscall on Linux, paid twice per profiled call.
      */
     public const TrackCpuTime = 1 << 2;
 
     /**
-     * Track memory allocation and deallocation.
+     * Track memory allocation and deallocation per function (Zend MM).
      */
     public const TrackMemoryAllocation = 1 << 3;
 
     /**
-     * Capture function arguments.
+     * @deprecated Reserved by the extension and ignored; it never had any effect.
      */
     public const TrackArguments = 1 << 4;
 
     /**
-     * Track exception throws.
+     * Count and sample exception throws (PHP 8.0+).
      */
     public const TrackExceptions = 1 << 5;
 
     /**
-     * Track file include and require operations.
+     * Count and time file compilation (`include` / `require`; OPcache misses only when OPcache is active).
      */
     public const TrackFileCompilation = 1 << 6;
 
     /**
-     * Track class and function definitions.
+     * @deprecated Reserved by the extension and ignored; it never had any effect.
      */
     public const TrackFileDefinitions = 1 << 7;
 
     /**
-     * Track session operations.
+     * @deprecated Reserved by the extension and ignored; it never had any effect.
      */
     public const TrackSessions = 1 << 8;
 
     /**
-     * Track serialize, json_encode, and similar operations.
+     * @deprecated Reserved by the extension and ignored; it never had any effect.
      */
     public const TrackSerialization = 1 << 9;
 
     /**
-     * Track preg_* operations.
+     * @deprecated Reserved by the extension and ignored; it never had any effect.
      */
     public const TrackRegex = 1 << 10;
 
     /**
-     * Track PDO and mysqli queries.
+     * Track PDO, mysqli and legacy mysql queries.
      */
     public const TrackPdo = 1 << 11;
 
@@ -147,17 +162,17 @@ class FeatureFlags
     public const TrackElasticsearch = 1 << 13;
 
     /**
-     * Track Redis, Memcached, and other cache calls.
+     * Track Redis and Memcached calls.
      */
     public const TrackCaches = 1 << 14;
 
     /**
-     * Track cURL and HTTP calls.
+     * Track cURL, Guzzle and AWS SDK calls.
      */
     public const TrackHttp = 1 << 15;
 
     /**
-     * Track mail and SMTP operations.
+     * Track mail() calls.
      */
     public const TrackMail = 1 << 16;
 
@@ -167,7 +182,7 @@ class FeatureFlags
     public const TrackFileOperations = 1 << 17;
 
     /**
-     * Track proc_open, exec, and shell_exec.
+     * Track exec / shell_exec / proc_open / popen and the sleep family.
      */
     public const TrackProc = 1 << 18;
 
@@ -177,7 +192,7 @@ class FeatureFlags
     public const TrackProcessList = 1 << 19;
 
     /**
-     * Track PHP errors, warnings, and notices.
+     * Count and sample PHP errors, warnings, and notices (PHP 8.0+).
      */
     public const TrackErrors = 1 << 20;
 
@@ -189,7 +204,13 @@ class FeatureFlags
     /**
      * Capture OPcache statistics (hits/misses delta over the trace, cached-script
      * count, memory used/free/wasted, interned strings, hit rate). No-op when
-     * OPcache isn't loaded; structurally produces zero deltas on CLI workloads.
+     * OPcache isn't loaded or `opcache.restrict_api` is set.
      */
     public const TrackOpcache = 1 << 22;
+
+    /**
+     * PHP 8.6+: stream errors as runtime events and `Io\Poll\Context::wait`
+     * metadata. Accepted but inert on older PHP versions.
+     */
+    public const TrackStreams = 1 << 23;
 }

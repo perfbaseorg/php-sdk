@@ -112,7 +112,11 @@ class CurlHttpClient implements HttpClientInterface
                 'body' => (string) $responseBody,
             ];
         } finally {
-            curl_close($handle);
+            // curl_close() has been a no-op since PHP 8.0 (handles are freed
+            // when they go out of scope) and is deprecated as of PHP 8.5.
+            if (PHP_VERSION_ID < 80000) {
+                curl_close($handle);
+            }
         }
     }
 
