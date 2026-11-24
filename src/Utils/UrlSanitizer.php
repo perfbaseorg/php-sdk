@@ -92,12 +92,12 @@ class UrlSanitizer
         // The fragment never reaches the server and may carry tokens (OAuth implicit flow).
         $hashPosition = strpos($url, '#');
         if ($hashPosition !== false) {
-            $url = substr($url, 0, $hashPosition);
+            $url = self::slice($url, 0, $hashPosition);
         }
 
         $queryPosition = strpos($url, '?');
-        $base = $queryPosition === false ? $url : substr($url, 0, $queryPosition);
-        $query = $queryPosition === false ? null : substr($url, $queryPosition + 1);
+        $base = $queryPosition === false ? $url : self::slice($url, 0, $queryPosition);
+        $query = $queryPosition === false ? null : self::slice($url, $queryPosition + 1);
 
         $base = self::stripUserInfo($base);
 
@@ -117,7 +117,7 @@ class UrlSanitizer
         $pairs = explode('&', $query);
         foreach ($pairs as $index => $pair) {
             $equalsPosition = strpos($pair, '=');
-            $rawName = $equalsPosition === false ? $pair : substr($pair, 0, $equalsPosition);
+            $rawName = $equalsPosition === false ? $pair : self::slice($pair, 0, $equalsPosition);
 
             if (!self::isSensitiveName(rawurldecode(str_replace('+', ' ', $rawName)), $extraWords)) {
                 continue;
@@ -212,15 +212,25 @@ class UrlSanitizer
 
         $authorityStart = $schemePosition + 3;
         $pathPosition = strpos($base, '/', $authorityStart);
-        $authority = $pathPosition === false ? substr($base, $authorityStart) : substr($base, $authorityStart, $pathPosition - $authorityStart);
+        $authority = $pathPosition === false ? self::slice($base, $authorityStart) : self::slice($base, $authorityStart, $pathPosition - $authorityStart);
 
         $atPosition = strrpos($authority, '@');
         if ($atPosition === false) {
             return $base;
         }
 
-        $rest = $pathPosition === false ? '' : substr($base, $pathPosition);
+        $rest = $pathPosition === false ? '' : self::slice($base, $pathPosition);
 
-        return substr($base, 0, $authorityStart) . substr($authority, $atPosition + 1) . $rest;
+        return self::slice($base, 0, $authorityStart) . self::slice($authority, $atPosition + 1) . $rest;
+    }
+
+    /**
+     * substr() that always returns a string. On PHP 7.4 substr() returns
+     * false instead of '' for an empty slice.
+     */
+    private static function slice(string $value, int $start, ?int $length = null): string
+    {
+        // (string) maps PHP 7.4's false to ''; it is a no-op on PHP 8.
+        return (string) ($length === null ? substr($value, $start) : substr($value, $start, $length));
     }
 }
